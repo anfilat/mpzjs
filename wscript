@@ -16,7 +16,7 @@ def build(bld):
     obj = bld.new_task_gen('cxx', 'shlib', 'node_addon')
     obj.target = 'bigint'
     obj.source = 'bigint.cc'
-    obj.cxxflags = ["-D_FILE_OFFSET_BITS=64", "-D_LARGEFILE_SOURCE"]
+    obj.cxxflags = ["-O3"]
     obj.includes = """
       %s/include
       /opt/local/include
