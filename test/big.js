@@ -410,6 +410,19 @@ exports.mod = function () {
     );
 };
 
+exports.bitlength = function () {
+  
+  var bl = bigint(
+    '433593290010590489671135819286259593426549306666324008679782084292'
+      + '2446494189019075159822930571858728009485237489829138626896756141'
+      + '873895833763224917704497568647701157104426'
+  ).bitLength();
+
+  console.log("-----" + bl + "------");
+
+  assert.equal(bl> 0, true);
+};
+
 if (process.argv[1] === __filename) {
     assert.eql = assert.deepEqual;
     Object.keys(exports).forEach(function (ex) {
