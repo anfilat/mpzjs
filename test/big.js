@@ -418,9 +418,15 @@ exports.bitlength = function () {
       + '873895833763224917704497568647701157104426'
   ).bitLength();
 
-  console.log("-----" + bl + "------");
-
   assert.equal(bl> 0, true);
+};
+
+exports.gcd = function () {
+  var b1 = bigint('234897235923342343242');
+  var b2 = bigint('234790237101762305340234');
+  var expected = bigint('6');
+
+  assert.equal(b1.gcd(b2).toString(), expected.toString());
 };
 
 if (process.argv[1] === __filename) {
