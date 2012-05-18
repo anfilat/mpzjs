@@ -1,11 +1,11 @@
-var assert = require('assert');
+var test = require('tap').test;
 var bigint = require('../');
 var put = require('put');
 
-exports.buf_be = function () {
+test('buf be', function (t) {
     var buf1 = new Buffer([1,2,3,4]);
     var num = bigint.fromBuffer(buf1, { size : 4 }).toNumber();
-    assert.eql(
+    t.same(
         num,
         1*Math.pow(256, 3)
         + 2 * Math.pow(256, 2)
@@ -14,26 +14,28 @@ exports.buf_be = function () {
     );
     
     var buf2 = put().word32be(num).buffer();
-    assert.eql(buf1, buf2, 
+    t.same(buf1, buf2, 
         '[ ' + [].slice.call(buf1) + ' ] != [ ' + [].slice.call(buf2) + ' ]'
     );
-};
+    t.end();
+});
 
-exports.buf_le = function () {
+test('buf le', function (t) {
     var buf1 = new Buffer([1,2,3,4]);
     var num = bigint
         .fromBuffer(buf1, { size : 4, endian : 'little' })
         .toNumber()
     ;
     var buf2 = put().word32le(num).buffer();
-    assert.eql(buf1, buf2,
+    t.same(buf1, buf2,
         '[ ' +  [].join.call(buf1, ',')
             + ' ] != [ '
         + [].join.call(buf2, ',') + ' ]'
     );
-};
+    t.end();
+});
 
-exports.buf_be_le = function () {
+test('buf be le', function (t) {
     var buf_be = new Buffer([1,2,3,4,5,6,7,8]);
     var buf_le = new Buffer([4,3,2,1,8,7,6,5]);
     
@@ -46,10 +48,11 @@ exports.buf_be_le = function () {
         .toString()
     ;
     
-    assert.eql(num_be, num_le);
-};
+    t.same(num_be, num_le);
+    t.end();
+});
 
-exports.buf_high_bits = function () {
+test('buf high bits', function (t) {
     var buf_be = new Buffer([
         201,202,203,204,
         205,206,207,208
@@ -68,10 +71,11 @@ exports.buf_high_bits = function () {
         .toString()
     ;
     
-    assert.eql(num_be, num_le);
-};
+    t.same(num_be, num_le);
+    t.end();
+});
 
-exports.buf_to_from = function () {
+test('buf to from', function (t) {
     var nums = [
         0, 1, 10, 15, 3, 16,
         7238, 1337, 31337, 505050,
@@ -85,19 +89,21 @@ exports.buf_to_from = function () {
         var b = bigint(num);
         var u = b.toBuffer();
         
-        assert.ok(u);
-        assert.eql(
+        t.ok(u);
+        t.same(
             bigint.fromBuffer(u).toString(),
             b.toString()
         );
     });
     
-    assert.throws(function () {
+    t.throws(function () {
         bigint(-1).toBuffer(); // can't pack negative numbers yet
     });
-};
+    
+    t.end();
+});
 
-exports.toBuf = function () {
+test('toBuf', function (t) {
     var buf = new Buffer([ 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f ]);
     var b = bigint(
         0x0a * 256*256*256*256*256
@@ -108,53 +114,55 @@ exports.toBuf = function () {
         + 0x0f
     );
     
-    assert.eql(b.toString(16), 'a0b0c0d0e0f');
+    t.same(b.toString(16), 'a0b0c0d0e0f');
     
-    assert.eql(
+    t.same(
         [].slice.call(b.toBuffer({ endian : 'big', size : 2 })),
         [ 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f ]
     );
     
-    assert.eql(
+    t.same(
         [].slice.call(b.toBuffer({ endian : 'little', size : 2 })),
         [ 0x0b, 0x0a, 0x0d, 0x0c, 0x0f, 0x0e ]
     );
     
-    assert.eql(
+    t.same(
         bigint.fromBuffer(buf).toString(16),
         b.toString(16)
     );
     
-    assert.eql(
+    t.same(
         [].slice.call(bigint(43135012110).toBuffer({
             endian : 'little', size : 4
         })),
         [ 0x0a, 0x00, 0x00, 0x00, 0x0e, 0x0d, 0x0c, 0x0b ]
     );
     
-    assert.eql(
+    t.same(
         [].slice.call(bigint(43135012110).toBuffer({
             endian : 'big', size : 4
         })),
         [ 0x00, 0x00, 0x00, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e ]
     );
-};
+    t.end();
+});
 
-exports.zeroPad = function () {
+test('zero pad', function (t) {
     var b = bigint(0x123456);
     
-    assert.eql(
+    t.same(
         [].slice.call(b.toBuffer({ endian : 'big', size:4 })),
         [ 0x00, 0x12, 0x34, 0x56 ]
     );
     
-    assert.eql(
+    t.same(
         [].slice.call(b.toBuffer({ endian : 'little', size:4 })),
         [ 0x56, 0x34, 0x12, 0x00 ]
     );
-};
+    t.end();
+});
 
-exports.toMpint = function () {
+test('to mpint', function (t) {
     // test values taken directly out of
     // http://tools.ietf.org/html/rfc4251#page-10
     
@@ -176,10 +184,11 @@ exports.toMpint = function () {
         var buf0 = bigint(key, 16).toBuffer('mpint');
         var buf1 = refs[key];
         
-        assert.eql(
+        t.same(
             buf0, buf1,
             buf0.inspect() + ' != ' + buf1.inspect()
             + ' for bigint(' + key + ')'
         );
     });
-};
+    t.end();
+});

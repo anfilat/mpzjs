@@ -23,9 +23,8 @@
         "url" : "http://substack.net"
     },
     "devDependencies" : {
-        "expresso" : ">=0.6.0",
-        "binary" : ">=0.1.7",
-        "put" : ">=0.0.5"
+        "tap" : "~0.2.5",
+        "put" : "~0.0.6"
     },
     "license" : "MIT/X11",
     "engine" : {
@@ -33,6 +32,6 @@
     },
     "scripts" : {
         "install" : "node-waf configure build",
-        "test" : "expresso"
+        "test" : "tap test/*.js"
     }
 }
