@@ -5,9 +5,9 @@ test('powm', function (t) {
     var twos = [ 2, '2', bigint(2), bigint('2') ]
     var tens = [ 100000, '100000', bigint(100000), bigint(100000) ];
     twos.forEach(function (two) {
-        tens.forEach(function (t) {
+        tens.forEach(function (te) {
             t.same(
-                bigint('111111111').powm(two, t).toString(),
+                bigint('111111111').powm(two, te).toString(),
                 '54321'
             );
         });
