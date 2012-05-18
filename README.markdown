@@ -3,6 +3,8 @@ bigint
 
 Arbitrary precision integral arithmetic for node.js!
 
+[![build status](https://secure.travis-ci.org/substack/node-bigint.png)](http://travis-ci.org/substack/node-bigint)
+
 This library wraps around [libgmp](http://gmplib.org/)'s
 [integer functions](http://gmplib.org/manual/Integer-Functions.html#Integer-Functions)
 to perform infinite-precision arithmetic.
