@@ -103,6 +103,8 @@ class BigInt : ObjectWrap {
 		static Handle<Value> Binvertm(const Arguments& args);
 		static Handle<Value> Bsqrt(const Arguments& args);
 		static Handle<Value> Broot(const Arguments& args);
+		static Handle<Value> BitLength(const Arguments& args);
+		static Handle<Value> Bgcd(const Arguments& args);
 };
 
 static gmp_randstate_t *		randstate	= NULL;
@@ -155,6 +157,8 @@ void BigInt::Initialize(v8::Handle<v8::Object> target) {
 	NODE_SET_PROTOTYPE_METHOD(constructor_template, "binvertm", Binvertm);
 	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bsqrt", Bsqrt);
 	NODE_SET_PROTOTYPE_METHOD(constructor_template, "broot", Broot);
+	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bitLength", BitLength);
+	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bgcd", Bgcd);
 
 	target->Set(String::NewSymbol("BigInt"), constructor_template->GetFunction());
 }
@@ -731,6 +735,35 @@ BigInt::Broot(const Arguments& args)
 	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
 	mpz_init(*res);
 	mpz_root(*res, *bigint->bigint_, x);
+
+	WRAP_RESULT(res, result);
+
+	return scope.Close(result);
+}
+
+Handle<Value>
+BigInt::BitLength(const Arguments& args)
+{
+	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
+	HandleScope scope;
+
+  size_t size = mpz_sizeinbase(*bigint->bigint_, 2);
+
+	Handle<Value> result = Integer::New(size);
+
+	return scope.Close(result);
+}
+
+Handle<Value>
+BigInt::Bgcd(const Arguments& args)
+{
+	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
+	HandleScope scope;
+
+	BigInt *bi = ObjectWrap::Unwrap<BigInt>(args[0]->ToObject());
+	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+	mpz_init(*res);
+	mpz_gcd(*res, *bigint->bigint_, *bi->bigint_);
 
 	WRAP_RESULT(res, result);
 

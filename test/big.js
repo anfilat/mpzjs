@@ -410,6 +410,25 @@ exports.mod = function () {
     );
 };
 
+exports.bitlength = function () {
+  
+  var bl = bigint(
+    '433593290010590489671135819286259593426549306666324008679782084292'
+      + '2446494189019075159822930571858728009485237489829138626896756141'
+      + '873895833763224917704497568647701157104426'
+  ).bitLength();
+
+  assert.equal(bl> 0, true);
+};
+
+exports.gcd = function () {
+  var b1 = bigint('234897235923342343242');
+  var b2 = bigint('234790237101762305340234');
+  var expected = bigint('6');
+
+  assert.equal(b1.gcd(b2).toString(), expected.toString());
+};
+
 if (process.argv[1] === __filename) {
     assert.eql = assert.deepEqual;
     Object.keys(exports).forEach(function (ex) {

@@ -290,6 +290,10 @@ BigInt.prototype.nextPrime = function () {
     return this.nextprime();
 };
 
+BigInt.prototype.gcd = function (num) {
+  return this.bgcd(num);
+};
+
 BigInt.fromBuffer = function (buf, opts) {
     if (!opts) opts = {};
     
