@@ -2,6 +2,6 @@ language: node_js
 node_js:
   - 0.4
   - 0.6
-before_script:
+before_install:
   - sudo apt-get update
   - sudo apt-get install libgmp-dev libgmp10
