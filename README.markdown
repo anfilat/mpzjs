@@ -253,21 +253,33 @@ Return the next prime greater than `this` using
 Return a new `bigint` that is the square root.  This truncates.
 
 .root(n)
--------
+--------
 
 Return a new `bigint` that is the `nth` root.  This truncates.
 
 .shiftLeft(n)
--------
+-------------
 
-Return a new `bigint` that is the `2^n` multiple. Equivalent of the <<
+Return a new `bigint` that is the `2^n` multiple. Equivalent of the `<<`
 operator.
 
 .shiftRight(n)
--------
+--------------
 
 Return a new `bigint` of the value integer divided by
-`2^n`. Equivalent of the >> operator.
+`2^n`. Equivalent of the `>>` operator.
+
+.gcd(n)
+-------
+
+Return the greatest common divisor of the current bigint with `n` as a new
+bigint.
+
+.bitLength()
+------------
+
+Return the number of bits used to represent the current bigint as a javascript
+Number.
 
 install
 =======
