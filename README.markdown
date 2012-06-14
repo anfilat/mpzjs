@@ -9,6 +9,11 @@ This library wraps around [libgmp](http://gmplib.org/)'s
 [integer functions](http://gmplib.org/manual/Integer-Functions.html#Integer-Functions)
 to perform infinite-precision arithmetic.
 
+You should also consider using
+[bignum](https://github.com/justmoon/node-bignum),
+which is based on the bigint api but uses openssl instead of libgmp,
+which you are more likely to already have on your system.
+
 example
 =======
 
