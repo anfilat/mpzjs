@@ -31,7 +31,7 @@
         "node" : ">=0.2.0"
     },
     "scripts" : {
-        "install" : "node-waf configure build",
+        "install" : "node-gyp configure build",
         "test" : "tap test/*.js"
     }
 }
