@@ -261,6 +261,9 @@ BigInt::ToString(const Arguments& args)
 
 	if(args.Length() > 0) {
 		REQ_UINT64_ARG(0, tbase);
+      if(tbase < 2 || tbase > 62) {
+         return ThrowException(Exception::Error(String::New("Base should be between 2 and 62, inclusive")));
+      }
 		base = tbase;
 	}
 	char *to = mpz_get_str(0, base, *bigint->bigint_);
