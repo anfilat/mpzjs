@@ -1,37 +1,40 @@
 {
-    "name" : "bigint",
-    "version" : "0.4.2",
-    "description" : "Arbitrary-precision integer arithmetic using libgmp",
-    "main" : "./index.js",
-    "repository" : {
-        "type" : "git",
-        "url" : "http://github.com/substack/node-bigint.git"
-    },
-    "keywords": [
-        "gmp",
-        "libgmp",
-        "big",
-        "bignum",
-        "bigint",
-        "integer",
-        "arithmetic",
-        "precision"
-    ],
-    "author" : {
-        "name" : "James Halliday",
-        "email" : "mail@substack.net",
-        "url" : "http://substack.net"
-    },
-    "devDependencies" : {
-        "tap" : "~0.2.5",
-        "put" : "~0.0.6"
-    },
-    "license" : "MIT/X11",
-    "engine" : {
-        "node" : ">=0.2.0"
-    },
-    "scripts" : {
-        "install" : "node-gyp configure build",
-        "test" : "tap test/*.js"
-    }
+  "name": "bigint",
+  "version": "0.4.2",
+  "description": "Arbitrary-precision integer arithmetic using libgmp",
+  "main": "./index.js",
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/substack/node-bigint.git"
+  },
+  "keywords": [
+    "gmp",
+    "libgmp",
+    "big",
+    "bignum",
+    "bigint",
+    "integer",
+    "arithmetic",
+    "precision"
+  ],
+  "author": {
+    "name": "James Halliday",
+    "email": "mail@substack.net",
+    "url": "http://substack.net"
+  },
+  "devDependencies": {
+    "tap": "~0.2.5",
+    "put": "~0.0.6"
+  },
+  "license": "MIT/X11",
+  "engine": {
+    "node": ">=0.2.0"
+  },
+  "scripts": {
+    "install": "node-gyp configure build",
+    "test": "tap test/*.js"
+  },
+  "dependencies": {
+    "nan": "^2.2.1"
+  }
 }

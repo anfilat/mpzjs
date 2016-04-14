@@ -3,6 +3,9 @@
     {
       'target_name': 'bigint',
       'sources': [ 'bigint.cc' ],
+      'include_dirs': [
+        "<!(node -e \"require('nan')\")"
+      ],
       'conditions': [
         ['OS=="linux"',
           {

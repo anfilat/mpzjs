@@ -3,9 +3,12 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <algorithm>
+#include <iostream>
 
-#include <v8.h>
-#include <node.h>
+#include <nan.h>
+//#include <v8.h>
+//#include <node.h>
 #include <gmp.h>
 #include <map>
 #include <utility>
@@ -14,782 +17,717 @@ using namespace v8;
 using namespace node;
 using namespace std;
 
-#define REQ_STR_ARG(I, VAR)							\
-	if (args.Length()<= (I) || !args[I]->IsString())			\
-		return ThrowException(Exception::TypeError(			\
-			String::New("Argument " #I " must be a string")));	\
-	Local<String> VAR = Local<String>::Cast(args[I]);
+#define REQ_STR_ARG(I, VAR)                                   \
+  if (info.Length()<= (I) || !info[I]->IsString()) {          \
+    Nan::ThrowTypeError("Argument " #I " must be a string");    \
+    return;                                     \
+  }                                                           \
+  Local<String> VAR = Local<String>::Cast(info[I]);
 
-#define REQ_UTF8_ARG(I, VAR)							\
-	if (args.Length() <= (I) || !args[I]->IsString())			\
-		return ThrowException(Exception::TypeError(                     \
-			String::New("Argument " #I " must be a utf8 string"))); \
-	String::Utf8Value VAR(args[I]->ToString());
+#define REQ_UTF8_ARG(I, VAR)                                  \
+  if (info.Length() <= (I) || !info[I]->IsString()) {         \
+    Nan::ThrowTypeError(                                        \
+      "Argument " #I " must be a utf8 string");               \
+    return;                                     \
+  }                                                           \
+  String::Utf8Value VAR(info[I]->ToString());
 
-#define REQ_INT32_ARG(I, VAR)							\
-	if (args.Length() <= (I) || !args[I]->IsInt32())			\
-		return ThrowException(Exception::TypeError(                     \
-			String::New("Argument " #I " must be an int32")));      \
-	int32_t VAR = args[I]->ToInt32()->Value();
+#define REQ_INT32_ARG(I, VAR)                                 \
+  if (info.Length() <= (I) || !info[I]->IsInt32()) {          \
+    Nan::ThrowTypeError("Argument " #I " must be an int32");    \
+    return;                                     \
+  }                                                           \
+  int32_t VAR = info[I]->ToInt32()->Value();
 
-#define REQ_UINT32_ARG(I, VAR)							\
-	if (args.Length() <= (I) || !args[I]->IsUint32())			\
-		return ThrowException(Exception::TypeError(                     \
-			String::New("Argument " #I " must be a uint32")));      \
-	uint32_t VAR = args[I]->ToUint32()->Value();
+#define REQ_UINT32_ARG(I, VAR)                                \
+  if (info.Length() <= (I) || !info[I]->IsUint32()) {         \
+    Nan::ThrowTypeError("Argument " #I " must be a uint32");    \
+    return;                                     \
+  }                                                           \
+  uint32_t VAR = info[I]->ToUint32()->Value();
 
-#define REQ_INT64_ARG(I, VAR)							\
-	if (args.Length() <= (I) || !args[I]->IsNumber())			\
-		return ThrowException(Exception::TypeError(                     \
-			String::New("Argument " #I " must be an int64")));      \
-	int64_t VAR = args[I]->ToInteger()->Value();
+#define REQ_INT64_ARG(I, VAR)                                 \
+  if (info.Length() <= (I) || !info[I]->IsNumber()) {         \
+    Nan::ThrowTypeError("Argument " #I " must be an int64");    \
+    return;                                     \
+  }                                                           \
+  int64_t VAR = info[I]->ToInteger()->Value();
 
-#define REQ_UINT64_ARG(I, VAR)							\
-	if (args.Length() <= (I) || !args[I]->IsNumber())			\
-		return ThrowException(Exception::TypeError(                     \
-			String::New("Argument " #I " must be a uint64")));      \
-	uint64_t VAR = args[I]->ToInteger()->Value();
+#define REQ_UINT64_ARG(I, VAR)                                \
+  if (info.Length() <= (I) || !info[I]->IsNumber()) {         \
+    Nan::ThrowTypeError("Argument " #I " must be a uint64");    \
+    return;                                     \
+  }                                                           \
+  uint64_t VAR = info[I]->ToInteger()->Value();
 
-#define WRAP_RESULT(RES, VAR)							\
-	Handle<Value> arg[1] = { External::New(*RES) };				\
-	Local<Object> VAR = constructor_template->GetFunction()->NewInstance(1, arg);
+#define REQ_BOOL_ARG(I, VAR)                                  \
+  if (info.Length() <= (I) || !info[I]->IsBoolean()) {        \
+    Nan::ThrowTypeError("Argument " #I " must be a boolean");   \
+    return;                                     \
+  }                                                           \
+  bool VAR = info[I]->ToBoolean()->Value();
 
-class BigInt : ObjectWrap {
-	public:
-		static void Initialize(Handle<Object> target);
-		mpz_t *bigint_;
-		static Persistent<Function> js_conditioner;
-		static void SetJSConditioner(Persistent<Function> constructor);
+#define WRAP_RESULT(RES, VAR)                                           \
+  Local<Value> arg[1] = { Nan::New<External>(static_cast<mpz_t *>(RES)) };  \
+  Local<Object> VAR = Nan::New<FunctionTemplate>(constructor_template)->      \
+    GetFunction()->NewInstance(1, arg);
+//
+// #define WRAP_RESULT(RES, VAR)							\
+//   Handle<Value> arg[1] = { External::New(*RES) };				\
+//   Local<Object> VAR = tmpl->GetFunction()->NewInstance(1, arg);
 
-	protected:
-		static Persistent<FunctionTemplate> constructor_template;
+class BigInt : public Nan::ObjectWrap {
+  public:
+    static void Initialize(Local<Object> target);
+    mpz_t *bigint_;
+    static Nan::Persistent<Function> js_conditioner;
+    static void SetJSConditioner(Local<Function> constructor);
 
-		BigInt(const String::Utf8Value& str, uint64_t base);
-		BigInt(uint64_t num);
-		BigInt(int64_t num);
-		BigInt(mpz_t *num);
-		BigInt();
-		~BigInt();
+  protected:
+    static Nan::Persistent<FunctionTemplate> constructor_template;
 
-		static Handle<Value> New(const Arguments& args);
-		static Handle<Value> ToString(const Arguments& args);
-		static Handle<Value> Badd(const Arguments& args);
-		static Handle<Value> Bsub(const Arguments& args);
-		static Handle<Value> Bmul(const Arguments& args);
-		static Handle<Value> Bdiv(const Arguments& args);
-		static Handle<Value> Uadd(const Arguments& args);
-		static Handle<Value> Usub(const Arguments& args);
-		static Handle<Value> Umul(const Arguments& args);
-		static Handle<Value> Udiv(const Arguments& args);
-		static Handle<Value> Umul_2exp(const Arguments& args);
-		static Handle<Value> Udiv_2exp(const Arguments& args);
-		static Handle<Value> Babs(const Arguments& args);
-		static Handle<Value> Bneg(const Arguments& args);
-		static Handle<Value> Bmod(const Arguments& args);
-		static Handle<Value> Umod(const Arguments& args);
-		static Handle<Value> Bpowm(const Arguments& args);
-		static Handle<Value> Upowm(const Arguments& args);
-		static Handle<Value> Upow(const Arguments& args);
-		static Handle<Value> Uupow(const Arguments& args);
-		static Handle<Value> Brand0(const Arguments& args);
-		static Handle<Value> Probprime(const Arguments& args);
-		static Handle<Value> Nextprime(const Arguments& args);
-		static Handle<Value> Bcompare(const Arguments& args);
-		static Handle<Value> Scompare(const Arguments& args);
-		static Handle<Value> Ucompare(const Arguments& args);
-		static Handle<Value> Band(const Arguments& args);
-		static Handle<Value> Bor(const Arguments& args);
-		static Handle<Value> Bxor(const Arguments& args);
-		static Handle<Value> Binvertm(const Arguments& args);
-		static Handle<Value> Bsqrt(const Arguments& args);
-		static Handle<Value> Broot(const Arguments& args);
-		static Handle<Value> BitLength(const Arguments& args);
-		static Handle<Value> Bgcd(const Arguments& args);
+    BigInt(const String::Utf8Value& str, uint64_t base);
+    BigInt(uint64_t num);
+    BigInt(int64_t num);
+    BigInt(mpz_t *num);
+    BigInt();
+    ~BigInt();
+
+    static NAN_METHOD(New);
+    static NAN_METHOD(ToString);
+    static NAN_METHOD(Badd);
+    static NAN_METHOD(Bsub);
+    static NAN_METHOD(Bmul);
+    static NAN_METHOD(Bdiv);
+    static NAN_METHOD(Uadd);
+    static NAN_METHOD(Usub);
+    static NAN_METHOD(Umul);
+    static NAN_METHOD(Udiv);
+    static NAN_METHOD(Umul_2exp);
+    static NAN_METHOD(Udiv_2exp);
+    static NAN_METHOD(Babs);
+    static NAN_METHOD(Bneg);
+    static NAN_METHOD(Bmod);
+    static NAN_METHOD(Umod);
+    static NAN_METHOD(Bpowm);
+    static NAN_METHOD(Upowm);
+    static NAN_METHOD(Upow);
+    static NAN_METHOD(Uupow);
+    static NAN_METHOD(Brand0);
+    static NAN_METHOD(Uprime0);
+    static NAN_METHOD(Probprime);
+    static NAN_METHOD(Bcompare);
+    static NAN_METHOD(Scompare);
+    static NAN_METHOD(Ucompare);
+    static NAN_METHOD(Band);
+    static NAN_METHOD(Bor);
+    static NAN_METHOD(Bxor);
+    static NAN_METHOD(Binvertm);
+    static NAN_METHOD(Bsqrt);
+    static NAN_METHOD(Broot);
+    static NAN_METHOD(BitLength);
+    static NAN_METHOD(Bgcd);
 };
 
 static gmp_randstate_t *		randstate	= NULL;
 
-Persistent<FunctionTemplate> BigInt::constructor_template;
+Nan::Persistent<FunctionTemplate> BigInt::constructor_template;
 
-Persistent<Function> BigInt::js_conditioner;
+Nan::Persistent<Function> BigInt::js_conditioner;
 
-void BigInt::SetJSConditioner(Persistent<Function> constructor) {
-	js_conditioner = constructor;
+void BigInt::SetJSConditioner(Local<Function> constructor) {
+  js_conditioner.Reset(constructor);
 }
 
-void BigInt::Initialize(v8::Handle<v8::Object> target) {
-	HandleScope scope;
-	
-	Local<FunctionTemplate> t = FunctionTemplate::New(New);
-	constructor_template = Persistent<FunctionTemplate>::New(t);
+void BigInt::Initialize(v8::Local<v8::Object> target) {
+  Nan::HandleScope scope;
 
-	constructor_template->InstanceTemplate()->SetInternalFieldCount(1);
-	constructor_template->SetClassName(String::NewSymbol("BigInt"));
+  Local<FunctionTemplate> tmpl = Nan::New<FunctionTemplate>(New);
+  constructor_template.Reset(tmpl);
 
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "toString", ToString);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "badd", Badd);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bsub", Bsub);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bmul", Bmul);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bdiv", Bdiv);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "uadd", Uadd);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "usub", Usub);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "umul", Umul);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "udiv", Udiv);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "umul2exp", Umul_2exp);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "udiv2exp", Udiv_2exp);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "babs", Babs);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bneg", Bneg);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bmod", Bmod);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "umod", Umod);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bpowm", Bpowm);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "upowm", Upowm);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "upow", Upow);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "uupow", Uupow);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "brand0", Brand0);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "probprime", Probprime);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "nextprime", Nextprime);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bcompare", Bcompare);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "scompare", Scompare);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "ucompare", Ucompare);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "band", Band);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bor", Bor);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bxor", Bxor);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "binvertm", Binvertm);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bsqrt", Bsqrt);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "broot", Broot);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bitLength", BitLength);
-	NODE_SET_PROTOTYPE_METHOD(constructor_template, "bgcd", Bgcd);
+  tmpl->InstanceTemplate()->SetInternalFieldCount(1);
+  tmpl->SetClassName(Nan::New("BigInt").ToLocalChecked());
 
-	target->Set(String::NewSymbol("BigInt"), constructor_template->GetFunction());
+  Nan::SetMethod(tmpl, "uprime0", Uprime0);
+
+  Nan::SetPrototypeMethod(tmpl, "toString", ToString);
+  Nan::SetPrototypeMethod(tmpl, "badd", Badd);
+  Nan::SetPrototypeMethod(tmpl, "bsub", Bsub);
+  Nan::SetPrototypeMethod(tmpl, "bmul", Bmul);
+  Nan::SetPrototypeMethod(tmpl, "bdiv", Bdiv);
+  Nan::SetPrototypeMethod(tmpl, "uadd", Uadd);
+  Nan::SetPrototypeMethod(tmpl, "usub", Usub);
+  Nan::SetPrototypeMethod(tmpl, "umul", Umul);
+  Nan::SetPrototypeMethod(tmpl, "udiv", Udiv);
+  Nan::SetPrototypeMethod(tmpl, "umul2exp", Umul_2exp);
+  Nan::SetPrototypeMethod(tmpl, "udiv2exp", Udiv_2exp);
+  Nan::SetPrototypeMethod(tmpl, "babs", Babs);
+  Nan::SetPrototypeMethod(tmpl, "bneg", Bneg);
+  Nan::SetPrototypeMethod(tmpl, "bmod", Bmod);
+  Nan::SetPrototypeMethod(tmpl, "umod", Umod);
+  Nan::SetPrototypeMethod(tmpl, "bpowm", Bpowm);
+  Nan::SetPrototypeMethod(tmpl, "upowm", Upowm);
+  Nan::SetPrototypeMethod(tmpl, "upow", Upow);
+  Nan::SetPrototypeMethod(tmpl, "uupow", Uupow);
+  Nan::SetPrototypeMethod(tmpl, "brand0", Brand0);
+  Nan::SetPrototypeMethod(tmpl, "probprime", Probprime);
+//  Nan::SetPrototypeMethod(tmpl, "nextprime", Nextprime);
+  Nan::SetPrototypeMethod(tmpl, "bcompare", Bcompare);
+  Nan::SetPrototypeMethod(tmpl, "scompare", Scompare);
+  Nan::SetPrototypeMethod(tmpl, "ucompare", Ucompare);
+  Nan::SetPrototypeMethod(tmpl, "band", Band);
+  Nan::SetPrototypeMethod(tmpl, "bor", Bor);
+  Nan::SetPrototypeMethod(tmpl, "bxor", Bxor);
+  Nan::SetPrototypeMethod(tmpl, "binvertm", Binvertm);
+  Nan::SetPrototypeMethod(tmpl, "bsqrt", Bsqrt);
+  Nan::SetPrototypeMethod(tmpl, "broot", Broot);
+  Nan::SetPrototypeMethod(tmpl, "bitLength", BitLength);
+  Nan::SetPrototypeMethod(tmpl, "bgcd", Bgcd);
+
+  target->Set(Nan::New("BigInt").ToLocalChecked(), tmpl->GetFunction());
 }
 
-BigInt::BigInt (const v8::String::Utf8Value& str, uint64_t base) : ObjectWrap ()
+BigInt::BigInt (const v8::String::Utf8Value& str, uint64_t base) : Nan::ObjectWrap ()
 {
-	bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*bigint_);
+  bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*bigint_);
 
-	mpz_set_str(*bigint_, *str, base);
+  mpz_set_str(*bigint_, *str, base);
 }
 
-BigInt::BigInt (uint64_t num) : ObjectWrap ()
+BigInt::BigInt (uint64_t num) : Nan::ObjectWrap ()
 {
-	bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*bigint_);
+  bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*bigint_);
 
-	mpz_set_ui(*bigint_, num);
+  mpz_set_ui(*bigint_, num);
 }
 
-BigInt::BigInt (int64_t num) : ObjectWrap ()
+BigInt::BigInt (int64_t num) : Nan::ObjectWrap ()
 {
-	bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*bigint_);
+  bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*bigint_);
 
-	mpz_set_si(*bigint_, num);
+  mpz_set_si(*bigint_, num);
 }
 
-BigInt::BigInt (mpz_t *num) : ObjectWrap ()
+BigInt::BigInt (mpz_t *num) : Nan::ObjectWrap ()
 {
-	bigint_ = num;
+  bigint_ = num;
 }
 
-BigInt::BigInt () : ObjectWrap ()
+BigInt::BigInt () : Nan::ObjectWrap ()
 {
-	bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*bigint_);
+  bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*bigint_);
 
-	mpz_set_ui(*bigint_, 0);
+  mpz_set_ui(*bigint_, 0);
 }
 
 BigInt::~BigInt ()
 {
-	mpz_clear(*bigint_);
-	free(bigint_);
+  mpz_clear(*bigint_);
+  free(bigint_);
 }
 
-Handle<Value>
-BigInt::New(const Arguments& args)
+NAN_METHOD(BigInt::New)
 {
-	if(!args.IsConstructCall()) {
-		int len = args.Length();
-		Handle<Value>* newArgs = new Handle<Value>[len];
-		for(int i = 0; i < len; i++) {
-			newArgs[i] = args[i];
-		}
-		Handle<Value> newInst = constructor_template->GetFunction()->NewInstance(len, newArgs);
-		delete[] newArgs;
-		return newInst;
-	}
-	HandleScope scope;
-	BigInt *bigint;
-	uint64_t base;
+  if(!info.IsConstructCall()) {
+    int len = info.Length();
+    Handle<Value>* newArgs = new Local<Value>[len];
+    for(int i = 0; i < len; i++) {
+      newArgs[i] = info[i];
+    }
+    Local<Value> newInst = Nan::New<FunctionTemplate>(constructor_template)->
+        GetFunction()->NewInstance(len, newArgs);
+    delete[] newArgs;
+    info.GetReturnValue().Set(newInst);
+    return;
+  }
 
-	if(args[0]->IsExternal()) {
-		mpz_t *num = (mpz_t *) External::Unwrap(args[0]);
-		bigint = new BigInt(num);
-	} else {
-		int len = args.Length();
-		Local<Object> ctx = Local<Object>::New(Object::New());
-		Handle<Value>* newArgs = new Handle<Value>[len];
-		for(int i = 0; i < len; i++) {
-			newArgs[i] = args[i];
-		}
-		Local<Value> obj = js_conditioner->Call(ctx, args.Length(), newArgs);
+  //HandleScope scope;
+  BigInt *bigint;
+  uint64_t base;
 
-		if(!*obj) {
-			return ThrowException(Exception::Error(String::New("Invalid type passed to bigint constructor")));
-		}
+  if(info[0]->IsExternal()) {
+    //mpz_t *num = (mpz_t *) External::Unwrap(args[0]);
+    mpz_t *num =  static_cast<mpz_t *>(External::Cast(*(info[0]))->Value());
 
-		String::Utf8Value str(obj->ToObject()->Get(String::NewSymbol("num"))->ToString());
-		base = obj->ToObject()->Get(String::NewSymbol("base"))->ToNumber()->Value();
+    bigint = new BigInt(num);
+  } else {
+    int len = info.Length();
+    Local<Object> ctx = Nan::New<Object>();
+    Local<Value>* newArgs = new Local<Value>[len];
+    for(int i = 0; i < len; i++) {
+      newArgs[i] = info[i];
+    }
+    Local<Value> obj = Nan::New<Function>(js_conditioner)->
+      Call(ctx, info.Length(), newArgs);
 
-		bigint = new BigInt(str, base);
-		delete[] newArgs;
-	}
+    if(!*obj) {
+      Nan::ThrowError("Invalid type passed to BigInt constructor");
+      return;
+    }
 
-	bigint->Wrap(args.This());
+    String::Utf8Value str(obj->ToObject()->Get(Nan::New("num").ToLocalChecked())->ToString());
+    base = obj->ToObject()->Get(Nan::New("base").ToLocalChecked())->ToNumber()->Value();
 
-	return scope.Close(args.This());
+    bigint = new BigInt(str, base);
+    delete[] newArgs;
+  }
+
+  bigint->Wrap(info.This());
+
+  info.GetReturnValue().Set(info.This());
 }
 
-Handle<Value>
-BigInt::ToString(const Arguments& args)
+NAN_METHOD(BigInt::ToString)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	uint64_t base = 10;
+  uint64_t base = 10;
 
-	if(args.Length() > 0) {
-		REQ_UINT64_ARG(0, tbase);
+  if(info.Length() > 0) {
+    REQ_UINT64_ARG(0, tbase);
       if(tbase < 2 || tbase > 62) {
-         return ThrowException(Exception::Error(String::New("Base should be between 2 and 62, inclusive")));
+         return Nan::ThrowError("base should be : 2<= base <= 62");
       }
-		base = tbase;
-	}
-	char *to = mpz_get_str(0, base, *bigint->bigint_);
+    base = tbase;
+  }
+  char *to = mpz_get_str(0, base, *bigint->bigint_);
 
-	Handle<Value> result = String::New(to);
-	free(to);
+  Local<Value> result = Nan::New<String>(to).ToLocalChecked();
+  free(to);
 
-	return scope.Close(result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Badd(const Arguments& args)
+NAN_METHOD(BigInt::Badd)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	BigInt *bi = ObjectWrap::Unwrap<BigInt>(args[0]->ToObject());
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
+  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
 
-	mpz_add(*res, *bigint->bigint_, *bi->bigint_);
+  mpz_add(*res, *bigint->bigint_, *bi->bigint_);
 
-	WRAP_RESULT(res, result);
+  WRAP_RESULT(res, result);
 
-	return scope.Close(result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Bsub(const Arguments& args)
+NAN_METHOD(BigInt::Bsub)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	BigInt *bi = ObjectWrap::Unwrap<BigInt>(args[0]->ToObject());
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_sub(*res, *bigint->bigint_, *bi->bigint_);
+  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_sub(*res, *bigint->bigint_, *bi->bigint_);
 
-	WRAP_RESULT(res, result);
-	
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Bmul(const Arguments& args)
+NAN_METHOD(BigInt::Bmul)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  //HandleScope scope;
 
-	BigInt *bi = ObjectWrap::Unwrap<BigInt>(args[0]->ToObject());
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_mul(*res, *bigint->bigint_, *bi->bigint_);
-	
-	WRAP_RESULT(res, result);
+  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_mul(*res, *bigint->bigint_, *bi->bigint_);
 
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Bdiv(const Arguments& args)
+NAN_METHOD(BigInt::Bdiv)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  //HandleScope scope;
 
-	BigInt *bi = ObjectWrap::Unwrap<BigInt>(args[0]->ToObject());
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_div(*res, *bigint->bigint_, *bi->bigint_);
-	
-	WRAP_RESULT(res, result);
+  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_div(*res, *bigint->bigint_, *bi->bigint_);
 
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Uadd(const Arguments& args)
+NAN_METHOD(BigInt::Uadd)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+//  HandleScope scope;
 
-	REQ_UINT64_ARG(0, x);
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_add_ui(*res, *bigint->bigint_, x);
-	
-	WRAP_RESULT(res, result);
+  REQ_UINT64_ARG(0, x);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_add_ui(*res, *bigint->bigint_, x);
 
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Usub(const Arguments& args)
+NAN_METHOD(BigInt::Usub)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+//  HandleScope scope;
 
-	REQ_UINT64_ARG(0, x);
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_sub_ui(*res, *bigint->bigint_, x);
-	
-	WRAP_RESULT(res, result);
+  REQ_UINT64_ARG(0, x);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_sub_ui(*res, *bigint->bigint_, x);
 
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Umul(const Arguments& args)
+NAN_METHOD(BigInt::Umul)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  //HandleScope scope;
 
-	REQ_UINT64_ARG(0, x);
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_mul_ui(*res, *bigint->bigint_, x);
-	
-	WRAP_RESULT(res, result);
+  REQ_UINT64_ARG(0, x);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_mul_ui(*res, *bigint->bigint_, x);
 
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Udiv(const Arguments& args)
+NAN_METHOD(BigInt::Udiv)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+//  HandleScope scope;
 
-	REQ_UINT64_ARG(0, x);
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_div_ui(*res, *bigint->bigint_, x);
-	
-	WRAP_RESULT(res, result);
+  REQ_UINT64_ARG(0, x);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_div_ui(*res, *bigint->bigint_, x);
 
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Umul_2exp(const Arguments& args)
+NAN_METHOD(BigInt::Umul_2exp)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+//  HandleScope scope;
 
-	REQ_UINT64_ARG(0, x);
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_mul_2exp(*res, *bigint->bigint_, x);
-	
-	WRAP_RESULT(res, result);
+  REQ_UINT64_ARG(0, x);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_mul_2exp(*res, *bigint->bigint_, x);
 
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Udiv_2exp(const Arguments& args)
+NAN_METHOD(BigInt::Udiv_2exp)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+//  HandleScope scope;
 
-	REQ_UINT64_ARG(0, x);
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_div_2exp(*res, *bigint->bigint_, x);
-	
-	WRAP_RESULT(res, result);
+  REQ_UINT64_ARG(0, x);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_div_2exp(*res, *bigint->bigint_, x);
 
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
+
 }
 
-Handle<Value>
-BigInt::Babs(const Arguments& args)
+NAN_METHOD(BigInt::Babs)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_abs(*res, *bigint->bigint_);
-	
-	WRAP_RESULT(res, result);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_abs(*res, *bigint->bigint_);
 
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Bneg(const Arguments& args)
+NAN_METHOD(BigInt::Bneg)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_neg(*res, *bigint->bigint_);
-	
-	WRAP_RESULT(res, result);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_neg(*res, *bigint->bigint_);
 
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Bmod(const Arguments& args)
+NAN_METHOD(BigInt::Bmod)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	BigInt *bi = ObjectWrap::Unwrap<BigInt>(args[0]->ToObject());
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_mod(*res, *bigint->bigint_, *bi->bigint_);
-	
-	WRAP_RESULT(res, result);
+  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_mod(*res, *bigint->bigint_, *bi->bigint_);
 
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Umod(const Arguments& args)
+NAN_METHOD(BigInt::Umod)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	REQ_UINT64_ARG(0, x);
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_mod_ui(*res, *bigint->bigint_, x);
-	
-	WRAP_RESULT(res, result);
+  REQ_UINT64_ARG(0, x);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_mod_ui(*res, *bigint->bigint_, x);
 
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Bpowm(const Arguments& args)
+NAN_METHOD(BigInt::Bpowm)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	BigInt *bi1 = ObjectWrap::Unwrap<BigInt>(args[0]->ToObject());
-	BigInt *bi2 = ObjectWrap::Unwrap<BigInt>(args[1]->ToObject());
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_powm(*res, *bigint->bigint_, *bi1->bigint_, *bi2->bigint_);
+  BigInt *bi1 = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  BigInt *bi2 = Nan::ObjectWrap::Unwrap<BigInt>(info[1]->ToObject());
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_powm(*res, *bigint->bigint_, *bi1->bigint_, *bi2->bigint_);
 
-	WRAP_RESULT(res, result);
-
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Upowm(const Arguments& args)
+NAN_METHOD(BigInt::Upowm)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	REQ_UINT64_ARG(0, x);
-	BigInt *bi = ObjectWrap::Unwrap<BigInt>(args[1]->ToObject());
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_powm_ui(*res, *bigint->bigint_, x, *bi->bigint_);
-	
-	WRAP_RESULT(res, result);
-	
-	return scope.Close(result);	
+  REQ_UINT64_ARG(0, x);
+  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[1]->ToObject());
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_powm_ui(*res, *bigint->bigint_, x, *bi->bigint_);
+
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Upow(const Arguments& args)
+NAN_METHOD(BigInt::Upow)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	REQ_UINT64_ARG(0, x);
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_pow_ui(*res, *bigint->bigint_, x);
-	
-	WRAP_RESULT(res, result);
+  REQ_UINT64_ARG(0, x);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_pow_ui(*res, *bigint->bigint_, x);
 
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-/* 
+/*
  * This makes no sense?  It doesn't act on the object but is a
  * prototype method.
  */
-Handle<Value>
-BigInt::Uupow(const Arguments& args)
+NAN_METHOD(BigInt::Uupow)
 {
-	HandleScope scope;
+  REQ_UINT64_ARG(0, x);
+  REQ_UINT64_ARG(1, y);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_ui_pow_ui(*res, x, y);
 
-	REQ_UINT64_ARG(0, x);
-	REQ_UINT64_ARG(1, y);
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_ui_pow_ui(*res, x, y);
-	
-	WRAP_RESULT(res, result);
+  WRAP_RESULT(res, result);
 
-	return scope.Close(result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Brand0(const Arguments& args)
+
+NAN_METHOD(BigInt::Brand0)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	
-	if(randstate == NULL) {
-		randstate = (gmp_randstate_t *) malloc(sizeof(gmp_randstate_t));
-		gmp_randinit_default(*randstate);
-		unsigned long seed = rand() + (time(NULL) * 1000) + clock();
-        	gmp_randseed_ui(*randstate, seed);
-	}
-	
-	mpz_urandomm(*res, *randstate, *bigint->bigint_);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
 
-	WRAP_RESULT(res, result);
+  if(randstate == NULL) {
+    randstate = (gmp_randstate_t *) malloc(sizeof(gmp_randstate_t));
+    gmp_randinit_default(*randstate);
+    unsigned long seed = rand() + (time(NULL) * 1000) + clock();
+          gmp_randseed_ui(*randstate, seed);
+  }
 
-	return scope.Close(result);
+  mpz_urandomm(*res, *randstate, *bigint->bigint_);
+
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Probprime(const Arguments& args)
+NAN_METHOD(BigInt::Probprime)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
-	
-	REQ_UINT32_ARG(0, reps);
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	return scope.Close(Number::New(mpz_probab_prime_p(*bigint->bigint_, reps)));
+  REQ_UINT32_ARG(0, reps);
+  info.GetReturnValue().Set(Nan::New<Number>(mpz_probab_prime_p(*bigint->bigint_, reps)));
 }
 
-Handle<Value>
-BigInt::Nextprime(const Arguments& args)
+// NAN_METHOD(BigInt::Nextprime)
+// {
+//   BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+//
+//   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+//   mpz_init(*res);
+//   mpz_nextprime(*res, *bigint->bigint_);
+//
+//   WRAP_RESULT(res, result);
+//
+//   info.GetReturnValue().Set(result);
+// }
+
+
+NAN_METHOD(BigInt::Bcompare)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
 
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_nextprime(*res, *bigint->bigint_);
-
-	WRAP_RESULT(res, result);
-
-	return scope.Close(result);
+  info.GetReturnValue().Set(Nan::New<Number>(mpz_cmp(*bigint->bigint_, *bi->bigint_)));
 }
 
-Handle<Value>
-BigInt::Bcompare(const Arguments& args)
+NAN_METHOD(BigInt::Scompare)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
-	
-	BigInt *bi = ObjectWrap::Unwrap<BigInt>(args[0]->ToObject());
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  REQ_INT64_ARG(0, x);
 
-	return scope.Close(Number::New(mpz_cmp(*bigint->bigint_, *bi->bigint_)));
+  info.GetReturnValue().Set(Nan::New<Number>(mpz_cmp_si(*bigint->bigint_, x)));
 }
 
-Handle<Value>
-BigInt::Scompare(const Arguments& args)
+NAN_METHOD(BigInt::Ucompare)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
-	
-	REQ_INT64_ARG(0, x);
-	
-	return scope.Close(Number::New(mpz_cmp_si(*bigint->bigint_, x)));
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  REQ_UINT64_ARG(0, x);
+
+  info.GetReturnValue().Set(Nan::New<Number>(mpz_cmp_ui(*bigint->bigint_, x)));
 }
 
-Handle<Value>
-BigInt::Ucompare(const Arguments& args)
+NAN_METHOD(BigInt::Band)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
-	
-	REQ_UINT64_ARG(0, x);
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	return scope.Close(Number::New(mpz_cmp_ui(*bigint->bigint_, x)));
+  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_and(*res, *bigint->bigint_, *bi->bigint_);
+
+  WRAP_RESULT(res, result);
+
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Band(const Arguments& args)
+NAN_METHOD(BigInt::Bor)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	BigInt *bi = ObjectWrap::Unwrap<BigInt>(args[0]->ToObject());
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_and(*res, *bigint->bigint_, *bi->bigint_);
+  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_ior(*res, *bigint->bigint_, *bi->bigint_);
 
-	WRAP_RESULT(res, result);
+  WRAP_RESULT(res, result);
 
-	return scope.Close(result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Bor(const Arguments& args)
+NAN_METHOD(BigInt::Bxor)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_xor(*res, *bigint->bigint_, *bi->bigint_);
 
-	BigInt *bi = ObjectWrap::Unwrap<BigInt>(args[0]->ToObject());
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_ior(*res, *bigint->bigint_, *bi->bigint_);
-
-	WRAP_RESULT(res, result);
-
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Bxor(const Arguments& args)
+NAN_METHOD(BigInt::Binvertm)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	BigInt *bi = ObjectWrap::Unwrap<BigInt>(args[0]->ToObject());
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_xor(*res, *bigint->bigint_, *bi->bigint_);
+  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_invert(*res, *bigint->bigint_, *bi->bigint_);
 
-	WRAP_RESULT(res, result);
-
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Binvertm(const Arguments& args)
+NAN_METHOD(BigInt::Bsqrt)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	BigInt *bi = ObjectWrap::Unwrap<BigInt>(args[0]->ToObject());
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_invert(*res, *bigint->bigint_, *bi->bigint_);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_sqrt(*res, *bigint->bigint_);
 
-	WRAP_RESULT(res, result);
-
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Bsqrt(const Arguments& args)
+NAN_METHOD(BigInt::Broot)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_sqrt(*res, *bigint->bigint_);
+  REQ_UINT64_ARG(0, x);
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_root(*res, *bigint->bigint_, x);
 
-	WRAP_RESULT(res, result);
-
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::Broot(const Arguments& args)
+NAN_METHOD(BigInt::BitLength)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  int size = mpz_sizeinbase(*bigint->bigint_, 2);
+  Local<Value> result = Nan::New<Integer>(size);
+  info.GetReturnValue().Set(result);
+}
+NAN_METHOD(BigInt::Bgcd)
+{
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_gcd(*res, *bigint->bigint_, *bi->bigint_);
 
-	REQ_UINT64_ARG(0, x);
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_root(*res, *bigint->bigint_, x);
-
-	WRAP_RESULT(res, result);
-
-	return scope.Close(result);
+  WRAP_RESULT(res, result);
+  info.GetReturnValue().Set(result);
 }
 
-Handle<Value>
-BigInt::BitLength(const Arguments& args)
+static NAN_METHOD(SetJSConditioner)
 {
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
-
-  size_t size = mpz_sizeinbase(*bigint->bigint_, 2);
-
-	Handle<Value> result = Integer::New(size);
-
-	return scope.Close(result);
-}
-
-Handle<Value>
-BigInt::Bgcd(const Arguments& args)
-{
-	BigInt *bigint = ObjectWrap::Unwrap<BigInt>(args.This());
-	HandleScope scope;
-
-	BigInt *bi = ObjectWrap::Unwrap<BigInt>(args[0]->ToObject());
-	mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-	mpz_init(*res);
-	mpz_gcd(*res, *bigint->bigint_, *bi->bigint_);
-
-	WRAP_RESULT(res, result);
-
-	return scope.Close(result);
-}
-
-static Handle<Value>
-SetJSConditioner(const Arguments& args)
-{
-	HandleScope scope;
-
-	BigInt::SetJSConditioner(Persistent<Function>::New(Local<Function>::Cast(args[0])));
-
-	return Undefined();
+  BigInt::SetJSConditioner(Local<Function>::Cast(info[0]));
+  return; // Undefined();
 }
 
 extern "C" void
-init (Handle<Object> target)
+init (Local<Object> target)
 {
-	HandleScope scope;
-
-	BigInt::Initialize(target);
-	NODE_SET_METHOD(target, "setJSConditioner", SetJSConditioner);
+  BigInt::Initialize(target);
+  Nan::SetMethod(target, "setJSConditioner", SetJSConditioner);
 }
 
 NODE_MODULE(bigint, init);
