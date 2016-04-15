@@ -7,8 +7,7 @@
 #include <iostream>
 
 #include <nan.h>
-//#include <v8.h>
-//#include <node.h>
+
 #include <gmp.h>
 #include <map>
 #include <utility>
@@ -71,10 +70,6 @@ using namespace std;
   Local<Value> arg[1] = { Nan::New<External>(static_cast<mpz_t *>(RES)) };  \
   Local<Object> VAR = Nan::New<FunctionTemplate>(constructor_template)->      \
     GetFunction()->NewInstance(1, arg);
-//
-// #define WRAP_RESULT(RES, VAR)							\
-//   Handle<Value> arg[1] = { External::New(*RES) };				\
-//   Local<Object> VAR = tmpl->GetFunction()->NewInstance(1, arg);
 
 class BigInt : public Nan::ObjectWrap {
   public:
