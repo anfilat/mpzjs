@@ -238,12 +238,11 @@ NAN_METHOD(BigInt::New)
     return;
   }
 
-  //HandleScope scope;
+  Nan::HandleScope scope;
   BigInt *bigint;
   uint64_t base;
 
   if(info[0]->IsExternal()) {
-    //mpz_t *num = (mpz_t *) External::Unwrap(args[0]);
     mpz_t *num =  static_cast<mpz_t *>(External::Cast(*(info[0]))->Value());
 
     bigint = new BigInt(num);
@@ -327,7 +326,7 @@ NAN_METHOD(BigInt::Bsub)
 NAN_METHOD(BigInt::Bmul)
 {
   BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
-  //HandleScope scope;
+  Nan::HandleScope scope;
 
   BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
@@ -341,7 +340,7 @@ NAN_METHOD(BigInt::Bmul)
 NAN_METHOD(BigInt::Bdiv)
 {
   BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
-  //HandleScope scope;
+  Nan::HandleScope scope;
 
   BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
@@ -355,7 +354,7 @@ NAN_METHOD(BigInt::Bdiv)
 NAN_METHOD(BigInt::Uadd)
 {
   BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
-//  HandleScope scope;
+  Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
@@ -370,7 +369,7 @@ NAN_METHOD(BigInt::Uadd)
 NAN_METHOD(BigInt::Usub)
 {
   BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
-//  HandleScope scope;
+  Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
@@ -384,7 +383,7 @@ NAN_METHOD(BigInt::Usub)
 NAN_METHOD(BigInt::Umul)
 {
   BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
-  //HandleScope scope;
+  Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
@@ -398,7 +397,7 @@ NAN_METHOD(BigInt::Umul)
 NAN_METHOD(BigInt::Udiv)
 {
   BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
-//  HandleScope scope;
+  Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
@@ -412,7 +411,7 @@ NAN_METHOD(BigInt::Udiv)
 NAN_METHOD(BigInt::Umul_2exp)
 {
   BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
-//  HandleScope scope;
+  Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
@@ -426,7 +425,7 @@ NAN_METHOD(BigInt::Umul_2exp)
 NAN_METHOD(BigInt::Udiv_2exp)
 {
   BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
-//  HandleScope scope;
+  Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
@@ -712,7 +711,7 @@ NAN_METHOD(BigInt::Bgcd)
 static NAN_METHOD(SetJSConditioner)
 {
   BigInt::SetJSConditioner(Local<Function>::Cast(info[0]));
-  return; // Undefined();
+  return;
 }
 
 extern "C" void
