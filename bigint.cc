@@ -114,8 +114,8 @@ class BigInt : public Nan::ObjectWrap {
     static NAN_METHOD(Upow);
     static NAN_METHOD(Uupow);
     static NAN_METHOD(Brand0);
-    static NAN_METHOD(Uprime0);
     static NAN_METHOD(Probprime);
+    static NAN_METHOD(Nextprime);
     static NAN_METHOD(Bcompare);
     static NAN_METHOD(Scompare);
     static NAN_METHOD(Ucompare);
@@ -148,8 +148,6 @@ void BigInt::Initialize(v8::Local<v8::Object> target) {
   tmpl->InstanceTemplate()->SetInternalFieldCount(1);
   tmpl->SetClassName(Nan::New("BigInt").ToLocalChecked());
 
-  Nan::SetMethod(tmpl, "uprime0", Uprime0);
-
   Nan::SetPrototypeMethod(tmpl, "toString", ToString);
   Nan::SetPrototypeMethod(tmpl, "badd", Badd);
   Nan::SetPrototypeMethod(tmpl, "bsub", Bsub);
@@ -171,7 +169,7 @@ void BigInt::Initialize(v8::Local<v8::Object> target) {
   Nan::SetPrototypeMethod(tmpl, "uupow", Uupow);
   Nan::SetPrototypeMethod(tmpl, "brand0", Brand0);
   Nan::SetPrototypeMethod(tmpl, "probprime", Probprime);
-//  Nan::SetPrototypeMethod(tmpl, "nextprime", Nextprime);
+  Nan::SetPrototypeMethod(tmpl, "nextprime", Nextprime);
   Nan::SetPrototypeMethod(tmpl, "bcompare", Bcompare);
   Nan::SetPrototypeMethod(tmpl, "scompare", Scompare);
   Nan::SetPrototypeMethod(tmpl, "ucompare", Ucompare);
@@ -582,19 +580,18 @@ NAN_METHOD(BigInt::Probprime)
   info.GetReturnValue().Set(Nan::New<Number>(mpz_probab_prime_p(*bigint->bigint_, reps)));
 }
 
-// NAN_METHOD(BigInt::Nextprime)
-// {
-//   BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
-//
-//   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-//   mpz_init(*res);
-//   mpz_nextprime(*res, *bigint->bigint_);
-//
-//   WRAP_RESULT(res, result);
-//
-//   info.GetReturnValue().Set(result);
-// }
+NAN_METHOD(BigInt::Nextprime)
+{
+  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
 
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+  mpz_nextprime(*res, *bigint->bigint_);
+
+  WRAP_RESULT(res, result);
+
+  info.GetReturnValue().Set(result);
+}
 
 NAN_METHOD(BigInt::Bcompare)
 {
