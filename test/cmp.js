@@ -1,11 +1,11 @@
-var test = require('tap').test;
-var bigint = require('../');
+const test = require('tap').test;
+const bigint = require('../');
 
 test('cmp', function (t) {
-    for (var i = -10; i <= 10; i++) {
-        var bi = bigint(i);
-        
-        for (var j = -10; j <= 10; j++) {
+    for (let i = -10; i <= 10; i++) {
+        const bi = bigint(i);
+
+        for (let j = -10; j <= 10; j++) {
             [ j, bigint(j) ].forEach(function (jj) {
                 t.same(bi.lt(jj), i < j);
                 t.same(bi.le(jj), i <= j);

@@ -1,17 +1,18 @@
 // Generate two primes p and q to the Digital Signature Standard (DSS)
 // http://www.itl.nist.gov/fipspubs/fip186.htm appendix 2.2
 
-var bigint = require('../');
-var assert = require('assert');
+const bigint = require('../');
+const assert = require('assert');
 
-var q = bigint(2).pow(159).add(1).rand(bigint(2).pow(160)).nextPrime();
-var L = 512 + 64 * Math.floor(Math.random() * 8);
+const q = bigint(2).pow(159).add(1).rand(bigint(2).pow(160)).nextPrime();
+const L = 512 + 64 * Math.floor(Math.random() * 8);
 
+let p;
 do {
-    var X = bigint(2).pow(L-1).add(1).rand(bigint(2).pow(L));
-    var c = X.mod(q.mul(2));
-    var p = X.sub(c.sub(1)); // p is congruent to 1 % 2q somehow!
-} while (p.lt(bigint.pow(2, L - 1)) || p.probPrime(50) === false)
+    const X = bigint(2).pow(L-1).add(1).rand(bigint(2).pow(L));
+    const c = X.mod(q.mul(2));
+    p = X.sub(c.sub(1)); // p is congruent to 1 % 2q somehow!
+} while (p.lt(bigint.pow(2, L - 1)) || p.probPrime(50) === false);
 
 assert.ok(q.gt(bigint.pow(2,159)), 'q > 2**159');
 assert.ok(q.lt(bigint.pow(2,160)), 'q < 2**160');
@@ -22,4 +23,4 @@ assert.ok(q.mul(p.sub(1).div(q)).add(1).eq(p), 'q divides p - 1');
 assert.ok(p.probPrime(50), 'p is not prime!');
 assert.ok(q.probPrime(50), 'q is not prime!');
 
-console.dir({ p : p, q : q });
+console.dir({ p : p.toString(), q : q.toString() });

@@ -8,5 +8,6 @@
 /build
 
 .idea
+.nyc_output
 package-lock.json
 node_modules

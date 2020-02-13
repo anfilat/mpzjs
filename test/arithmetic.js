@@ -1,19 +1,19 @@
-var test = require('tap').test;
-var bigint = require('../');
+const test = require('tap').test;
+const bigint = require('../');
 
 test('add', function (t) {
-    for (var i = -10; i < 10; i++) {
-        for (var j = -10; j < 10; j++) {
-            var is = i.toString();
-            var js = j.toString();
-            var ks = (i + j).toString();
+    for (let i = -10; i < 10; i++) {
+        for (let j = -10; j < 10; j++) {
+            const is = i.toString();
+            const js = j.toString();
+            const ks = (i + j).toString();
             t.same(bigint(i).add(j).toString(), ks);
             t.same(bigint(i).add(js).toString(), ks);
             t.same(bigint(i).add(bigint(j)).toString(), ks);
             t.same(bigint.add(i, j).toString(), ks);
         }
     }
-    
+
     t.same(
         bigint(
             '201781752444966478956292456789265633588628356858680927185287861892'
@@ -32,18 +32,18 @@ test('add', function (t) {
 });
 
 test('sub', function (t) {
-    for (var i = -10; i < 10; i++) {
-        for (var j = -10; j < 10; j++) {
-            var is = i.toString();
-            var js = j.toString();
-            var ks = (i - j).toString();
+    for (let i = -10; i < 10; i++) {
+        for (let j = -10; j < 10; j++) {
+            const is = i.toString();
+            const js = j.toString();
+            const ks = (i - j).toString();
             t.same(bigint(i).sub(j).toString(), ks);
             t.same(bigint(i).sub(js).toString(), ks);
             t.same(bigint(i).sub(bigint(j)).toString(), ks);
             t.same(bigint.sub(i, j).toString(), ks);
         }
     }
-    
+
     t.same(
         bigint(
             '635849762218952604062459342660379446997761295162166888134051068531'
@@ -62,18 +62,18 @@ test('sub', function (t) {
 });
 
 test('mul', function (t) {
-    for (var i = -10; i < 10; i++) {
-        for (var j = -10; j < 10; j++) {
-            var is = i.toString();
-            var js = j.toString();
-            var ks = (i * j).toString();
+    for (let i = -10; i < 10; i++) {
+        for (let j = -10; j < 10; j++) {
+            const is = i.toString();
+            const js = j.toString();
+            const ks = (i * j).toString();
             t.same(bigint(i).mul(j).toString(), ks);
             t.same(bigint(i).mul(js).toString(), ks);
             t.same(bigint(i).mul(bigint(j)).toString(), ks);
             t.same(bigint.mul(i, j).toString(), ks);
         }
     }
-    
+
     t.same(
         bigint(
             '433593290010590489671135819286259593426549306666324008679782084292'
@@ -91,7 +91,7 @@ test('mul', function (t) {
         + '58079529848220802017396422115936618644438110463469902675126288489182'
         + '82'
     );
-    
+
     t.same(
         bigint('10000000000000000000000000000').mul(-123).toString(),
         '-1230000000000000000000000000000'
@@ -100,11 +100,11 @@ test('mul', function (t) {
 });
 
 test('div', function (t) {
-    for (var i = -10; i < 10; i++) {
-        for (var j = -10; j < 10; j++) {
-            var is = i.toString();
-            var js = j.toString();
-            var ks = Math.floor(i / j).toString();
+    for (let i = -10; i < 10; i++) {
+        for (let j = -10; j < 10; j++) {
+            const is = i.toString();
+            const js = j.toString();
+            const ks = Math.floor(i / j).toString();
             if (ks.match(/^-?\d+$/)) { // ignore exceptions
                 t.same(bigint(i).div(j).toString(), ks);
                 t.same(bigint(i).div(js).toString(), ks);
@@ -113,7 +113,7 @@ test('div', function (t) {
             }
         }
     }
-    
+
     t.same(
         bigint(
             '433593290010590489671135819286259593426549306666324008679782084292'
@@ -140,7 +140,7 @@ test('abs', function (t) {
         + '49418901907515982293057185872800948523748982913862689675614187389583'
         + '37632249177044975686477011571044266'
     );
-    
+
     t.same(
         bigint(
             '-43359329001059048967113581928625959342654930666632400867978208429'
@@ -165,7 +165,7 @@ test('neg', function (t) {
         + '64941890190751598229305718587280094852374898291386268967561418738958'
         + '337632249177044975686477011571044266'
     );
-    
+
     t.same(
         bigint(
             '-43359329001059048967113581928625959342654930666632400867978208429'
@@ -180,12 +180,12 @@ test('neg', function (t) {
 });
 
 test('mod', function (t) {
-    for (var i = 0; i < 10; i++) {
-        for (var j = 0; j < 10; j++) {
-            var is = i.toString();
-            var js = j.toString();
+    for (let i = 0; i < 10; i++) {
+        for (let j = 0; j < 10; j++) {
+            const is = i.toString();
+            const js = j.toString();
             if (!isNaN(i % j)) {
-                var ks = (i % j).toString();
+                const ks = (i % j).toString();
                 t.same(bigint(i).mod(j).toString(), ks);
                 t.same(bigint(i).mod(js).toString(), ks);
                 t.same(bigint(i).mod(bigint(j)).toString(), ks);
@@ -193,7 +193,7 @@ test('mod', function (t) {
             }
         }
     }
-    
+
     t.same(
         bigint('486541542410442549118519277483401413')
             .mod('1802185856709793916115771381388554')

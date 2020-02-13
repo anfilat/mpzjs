@@ -20,9 +20,9 @@ example
 simple.js
 ---------
 
-    var bigint = require('bigint');
+    const bigint = require('bigint');
     
-    var b = bigint('782910138827292261791972728324982')
+    const b = bigint('782910138827292261791972728324982')
         .sub('182373273283402171237474774728373')
         .div(8)
     ;
@@ -38,12 +38,12 @@ perfect.js
 Generate the perfect numbers:
 
     // If 2**n-1 is prime, then (2**n-1) * 2**(n-1) is perfect.
-    var bigint = require('bigint');
+    const bigint = require('bigint');
 
-    for (var n = 0; n < 100; n++) {
-        var p = bigint.pow(2, n).sub(1);
+    for (let n = 0; n < 100; n++) {
+        const p = bigint.pow(2, n).sub(1);
         if (p.probPrime(50)) {
-            var perfect = p.mul(bigint.pow(2, n - 1));
+            const perfect = p.mul(bigint.pow(2, n - 1));
             console.log(perfect.toString());
         }
     }
