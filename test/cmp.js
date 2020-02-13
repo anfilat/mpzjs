@@ -1,12 +1,12 @@
 const test = require('tap').test;
-const bigint = require('../');
+const GBI = require('../');
 
 test('cmp', function (t) {
     for (let i = -10; i <= 10; i++) {
-        const bi = bigint(i);
+        const bi = GBI(i);
 
         for (let j = -10; j <= 10; j++) {
-            [ j, bigint(j) ].forEach(function (jj) {
+            [ j, GBI(j) ].forEach(function (jj) {
                 t.same(bi.lt(jj), i < j);
                 t.same(bi.le(jj), i <= j);
                 t.same(bi.eq(jj), i === j);

@@ -1,14 +1,14 @@
 const test = require('tap').test;
-const bigint = require('../');
+const GBI = require('../');
 
 test('bit length', function (t) {
-  const bl = bigint(
+  const bl = GBI(
     '433593290010590489671135819286259593426549306666324008679782084292'
       + '2446494189019075159822930571858728009485237489829138626896756141'
       + '873895833763224917704497568647701157104426'
   ).bitLength();
 
-  t.equal(bl> 0, true);
+  t.equal(bl > 0, true);
 
   t.end();
 });

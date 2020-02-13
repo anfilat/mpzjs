@@ -1,11 +1,11 @@
 const test = require('tap').test;
-const bigint = require('../');
+const GBI = require('../');
 
 test('mod', function (t) {
-    t.same(bigint(55555).mod(2).toString(), '1');
+    t.same(GBI(55555).mod(2).toString(), '1');
     t.same(
-        bigint('1234567').mod(
-            bigint('4321')
+        GBI('1234567').mod(
+            GBI('4321')
         ).toNumber(),
         1234567 % 4321
     );

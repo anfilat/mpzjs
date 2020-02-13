@@ -1,10 +1,10 @@
 const test = require('tap').test;
-const bigint = require('../');
+const GBI = require('../');
 const put = require('put');
 
 test('buf be', function (t) {
-    const buf1 = new Buffer([1, 2, 3, 4]);
-    const num = bigint.fromBuffer(buf1, { size : 4 }).toNumber();
+    const buf1 = Buffer.from([1, 2, 3, 4]);
+    const num = GBI.fromBuffer(buf1, { size : 4 }).toNumber();
     t.same(
         num,
           1 * Math.pow(256, 3)
@@ -21,8 +21,8 @@ test('buf be', function (t) {
 });
 
 test('buf le', function (t) {
-    const buf1 = new Buffer([1, 2, 3, 4]);
-    const num = bigint
+    const buf1 = Buffer.from([1, 2, 3, 4]);
+    const num = GBI
         .fromBuffer(buf1, { size : 4, endian : 'little' })
         .toNumber()
     ;
@@ -34,13 +34,13 @@ test('buf le', function (t) {
 });
 
 test('buf be le', function (t) {
-    const buf_be = new Buffer([1, 2, 3, 4, 5, 6, 7, 8]);
-    const buf_le = new Buffer([4, 3, 2, 1, 8, 7, 6, 5]);
+    const buf_be = Buffer.from([1, 2, 3, 4, 5, 6, 7, 8]);
+    const buf_le = Buffer.from([4, 3, 2, 1, 8, 7, 6, 5]);
 
-    const num_be = bigint
+    const num_be = GBI
         .fromBuffer(buf_be, { size : 4, endian : 'big' })
         .toString();
-    const num_le = bigint
+    const num_le = GBI
         .fromBuffer(buf_le, { size : 4, endian : 'little' })
         .toString();
 
@@ -49,19 +49,19 @@ test('buf be le', function (t) {
 });
 
 test('buf high bits', function (t) {
-    const buf_be = new Buffer([
+    const buf_be = Buffer.from([
         201, 202, 203, 204,
         205, 206, 207, 208
     ]);
-    const buf_le = new Buffer([
+    const buf_le = Buffer.from([
         204, 203, 202, 201,
         208, 207, 206, 205
     ]);
 
-    const num_be = bigint
+    const num_be = GBI
         .fromBuffer(buf_be, { size : 4, endian : 'big' })
         .toString();
-    const num_le = bigint
+    const num_le = GBI
         .fromBuffer(buf_le, { size : 4, endian : 'little' })
         .toString();
 
@@ -80,25 +80,25 @@ test('buf to from', function (t) {
     ];
 
     nums.forEach(function (num) {
-        const b = bigint(num);
+        const b = GBI(num);
         const u = b.toBuffer();
 
         t.ok(u);
         t.same(
-            bigint.fromBuffer(u).toString(),
+            GBI.fromBuffer(u).toString(),
             b.toString()
         );
     });
 
     t.throws(function () {
-        bigint(-1).toBuffer(); // can't pack negative numbers yet
+        GBI(-1).toBuffer(); // can't pack negative numbers yet
     });
     t.end();
 });
 
 test('toBuf', function (t) {
-    const buf = new Buffer([ 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f ]);
-    const b = bigint(
+    const buf = Buffer.from([ 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f ]);
+    const b = GBI(
           0x0a * 256*256*256*256*256
         + 0x0b * 256*256*256*256
         + 0x0c * 256*256*256
@@ -120,19 +120,19 @@ test('toBuf', function (t) {
     );
 
     t.same(
-        bigint.fromBuffer(buf).toString(16),
+        GBI.fromBuffer(buf).toString(16),
         b.toString(16)
     );
 
     t.same(
-        [].slice.call(bigint(43135012110).toBuffer({
+        [].slice.call(GBI(43135012110).toBuffer({
             endian : 'little', size : 4
         })),
         [ 0x0a, 0x00, 0x00, 0x00, 0x0e, 0x0d, 0x0c, 0x0b ]
     );
 
     t.same(
-        [].slice.call(bigint(43135012110).toBuffer({
+        [].slice.call(GBI(43135012110).toBuffer({
             endian : 'big', size : 4
         })),
         [ 0x00, 0x00, 0x00, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e ]
@@ -141,7 +141,7 @@ test('toBuf', function (t) {
 });
 
 test('zero pad', function (t) {
-    const b = bigint(0x123456);
+    const b = GBI(0x123456);
 
     t.same(
         [].slice.call(b.toBuffer({ endian : 'big', size:4 })),
@@ -160,27 +160,27 @@ test('to mpint', function (t) {
     // http://tools.ietf.org/html/rfc4251#page-10
 
     const refs = {
-        '0' : new Buffer([ 0x00, 0x00, 0x00, 0x00 ]),
-        '9a378f9b2e332a7' : new Buffer([
+        '0': Buffer.from([ 0x00, 0x00, 0x00, 0x00 ]),
+        '9a378f9b2e332a7': Buffer.from([
             0x00, 0x00, 0x00, 0x08,
             0x09, 0xa3, 0x78, 0xf9,
             0xb2, 0xe3, 0x32, 0xa7,
         ]),
-        '80' : new Buffer([ 0x00, 0x00, 0x00, 0x02, 0x00, 0x80 ]),
-        '-1234' : new Buffer([ 0x00, 0x00, 0x00, 0x02, 0xed, 0xcc ]),
-        '-deadbeef' : new Buffer([
+        '80': Buffer.from([ 0x00, 0x00, 0x00, 0x02, 0x00, 0x80 ]),
+        '-1234': Buffer.from([ 0x00, 0x00, 0x00, 0x02, 0xed, 0xcc ]),
+        '-deadbeef': Buffer.from([
             0x00, 0x00, 0x00, 0x05, 0xff, 0x21, 0x52, 0x41, 0x11
         ]),
     };
 
     Object.keys(refs).forEach(function (key) {
-        const buf0 = bigint(key, 16).toBuffer('mpint');
+        const buf0 = GBI(key, 16).toBuffer('mpint');
         const buf1 = refs[key];
 
         t.same(
             buf0, buf1,
             buf0.inspect() + ' != ' + buf1.inspect()
-            + ' for bigint(' + key + ')'
+            + ' for GBI(' + key + ')'
         );
     });
     t.end();

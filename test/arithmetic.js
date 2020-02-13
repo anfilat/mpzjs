@@ -1,5 +1,5 @@
 const test = require('tap').test;
-const bigint = require('../');
+const GBI = require('../');
 
 test('add', function (t) {
     for (let i = -10; i < 10; i++) {
@@ -7,15 +7,15 @@ test('add', function (t) {
             const is = i.toString();
             const js = j.toString();
             const ks = (i + j).toString();
-            t.same(bigint(i).add(j).toString(), ks);
-            t.same(bigint(i).add(js).toString(), ks);
-            t.same(bigint(i).add(bigint(j)).toString(), ks);
-            t.same(bigint.add(i, j).toString(), ks);
+            t.same(GBI(i).add(j).toString(), ks);
+            t.same(GBI(i).add(js).toString(), ks);
+            t.same(GBI(i).add(GBI(j)).toString(), ks);
+            t.same(GBI.add(i, j).toString(), ks);
         }
     }
 
     t.same(
-        bigint(
+        GBI(
             '201781752444966478956292456789265633588628356858680927185287861892'
             + '9889675589272409635031813235465496971529430565627918846694860512'
             + '1492948268400884893722767401972695174353441'
@@ -37,15 +37,15 @@ test('sub', function (t) {
             const is = i.toString();
             const js = j.toString();
             const ks = (i - j).toString();
-            t.same(bigint(i).sub(j).toString(), ks);
-            t.same(bigint(i).sub(js).toString(), ks);
-            t.same(bigint(i).sub(bigint(j)).toString(), ks);
-            t.same(bigint.sub(i, j).toString(), ks);
+            t.same(GBI(i).sub(j).toString(), ks);
+            t.same(GBI(i).sub(js).toString(), ks);
+            t.same(GBI(i).sub(GBI(j)).toString(), ks);
+            t.same(GBI.sub(i, j).toString(), ks);
         }
     }
 
     t.same(
-        bigint(
+        GBI(
             '635849762218952604062459342660379446997761295162166888134051068531'
             + '9813941775949841573516110003093332652267534768664621969514455380'
             + '8051168706779408804756208386011014197185296'
@@ -67,15 +67,15 @@ test('mul', function (t) {
             const is = i.toString();
             const js = j.toString();
             const ks = (i * j).toString();
-            t.same(bigint(i).mul(j).toString(), ks);
-            t.same(bigint(i).mul(js).toString(), ks);
-            t.same(bigint(i).mul(bigint(j)).toString(), ks);
-            t.same(bigint.mul(i, j).toString(), ks);
+            t.same(GBI(i).mul(j).toString(), ks);
+            t.same(GBI(i).mul(js).toString(), ks);
+            t.same(GBI(i).mul(GBI(j)).toString(), ks);
+            t.same(GBI.mul(i, j).toString(), ks);
         }
     }
 
     t.same(
-        bigint(
+        GBI(
             '433593290010590489671135819286259593426549306666324008679782084292'
             + '2446494189019075159822930571858728009485237489829138626896756141'
             + '8738958337632249177044975686477011571044266'
@@ -93,7 +93,7 @@ test('mul', function (t) {
     );
 
     t.same(
-        bigint('10000000000000000000000000000').mul(-123).toString(),
+        GBI('10000000000000000000000000000').mul(-123).toString(),
         '-1230000000000000000000000000000'
     );
     t.end();
@@ -106,16 +106,16 @@ test('div', function (t) {
             const js = j.toString();
             const ks = Math.floor(i / j).toString();
             if (ks.match(/^-?\d+$/)) { // ignore exceptions
-                t.same(bigint(i).div(j).toString(), ks);
-                t.same(bigint(i).div(js).toString(), ks);
-                t.same(bigint(i).div(bigint(j)).toString(), ks);
-                t.same(bigint.div(i, j).toString(), ks);
+                t.same(GBI(i).div(j).toString(), ks);
+                t.same(GBI(i).div(js).toString(), ks);
+                t.same(GBI(i).div(GBI(j)).toString(), ks);
+                t.same(GBI.div(i, j).toString(), ks);
             }
         }
     }
 
     t.same(
-        bigint(
+        GBI(
             '433593290010590489671135819286259593426549306666324008679782084292'
             + '2446494189019075159822930571858728009485237489829138626896756141'
             + '8738958337632249177044975686477011571044266'
@@ -131,7 +131,7 @@ test('div', function (t) {
 
 test('abs', function (t) {
     t.same(
-        bigint(
+        GBI(
             '433593290010590489671135819286259593426549306666324008679782084292'
             + '2446494189019075159822930571858728009485237489829138626896756141'
             + '8738958337632249177044975686477011571044266'
@@ -142,7 +142,7 @@ test('abs', function (t) {
     );
 
     t.same(
-        bigint(
+        GBI(
             '-43359329001059048967113581928625959342654930666632400867978208429'
             + '2244649418901907515982293057185872800948523748982913862689675614'
             + '18738958337632249177044975686477011571044266'
@@ -156,7 +156,7 @@ test('abs', function (t) {
 
 test('neg', function (t) {
     t.same(
-        bigint(
+        GBI(
             '433593290010590489671135819286259593426549306666324008679782084292'
             + '2446494189019075159822930571858728009485237489829138626896756141'
             + '8738958337632249177044975686477011571044266'
@@ -167,7 +167,7 @@ test('neg', function (t) {
     );
 
     t.same(
-        bigint(
+        GBI(
             '-43359329001059048967113581928625959342654930666632400867978208429'
             + '2244649418901907515982293057185872800948523748982913862689675614'
             + '18738958337632249177044975686477011571044266'
@@ -186,16 +186,16 @@ test('mod', function (t) {
             const js = j.toString();
             if (!isNaN(i % j)) {
                 const ks = (i % j).toString();
-                t.same(bigint(i).mod(j).toString(), ks);
-                t.same(bigint(i).mod(js).toString(), ks);
-                t.same(bigint(i).mod(bigint(j)).toString(), ks);
-                t.same(bigint.mod(i, j).toString(), ks);
+                t.same(GBI(i).mod(j).toString(), ks);
+                t.same(GBI(i).mod(js).toString(), ks);
+                t.same(GBI(i).mod(GBI(j)).toString(), ks);
+                t.same(GBI.mod(i, j).toString(), ks);
             }
         }
     }
 
     t.same(
-        bigint('486541542410442549118519277483401413')
+        GBI('486541542410442549118519277483401413')
             .mod('1802185856709793916115771381388554')
             .toString()
         ,
