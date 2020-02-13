@@ -92,12 +92,18 @@ class GmpBigInt : public Nan::ObjectWrap {
     static NAN_METHOD(ToString);
     static NAN_METHOD(ToNumber);
     static NAN_METHOD(Badd);
+    static NAN_METHOD(BAssignAdd);
     static NAN_METHOD(Bsub);
+    static NAN_METHOD(BAssignSub);
     static NAN_METHOD(Bmul);
+    static NAN_METHOD(BAssignMul);
     static NAN_METHOD(Bdiv);
     static NAN_METHOD(Uadd);
+    static NAN_METHOD(UAssignAdd);
     static NAN_METHOD(Usub);
+    static NAN_METHOD(UAssignSub);
     static NAN_METHOD(Umul);
+    static NAN_METHOD(UAssignMul);
     static NAN_METHOD(Udiv);
     static NAN_METHOD(Umul_2exp);
     static NAN_METHOD(Udiv_2exp);
@@ -145,12 +151,18 @@ void GmpBigInt::Initialize(Local<Object> target) {
   Nan::SetPrototypeMethod(tmpl, "toString", ToString);
   Nan::SetPrototypeMethod(tmpl, "toNumber", ToNumber);
   Nan::SetPrototypeMethod(tmpl, "badd", Badd);
+  Nan::SetPrototypeMethod(tmpl, "bassignAdd", BAssignAdd);
   Nan::SetPrototypeMethod(tmpl, "bsub", Bsub);
+  Nan::SetPrototypeMethod(tmpl, "bassignSub", BAssignSub);
   Nan::SetPrototypeMethod(tmpl, "bmul", Bmul);
+  Nan::SetPrototypeMethod(tmpl, "bassignMul", BAssignMul);
   Nan::SetPrototypeMethod(tmpl, "bdiv", Bdiv);
   Nan::SetPrototypeMethod(tmpl, "uadd", Uadd);
+  Nan::SetPrototypeMethod(tmpl, "uassignAdd", UAssignAdd);
   Nan::SetPrototypeMethod(tmpl, "usub", Usub);
+  Nan::SetPrototypeMethod(tmpl, "uassignSub", UAssignSub);
   Nan::SetPrototypeMethod(tmpl, "umul", Umul);
+  Nan::SetPrototypeMethod(tmpl, "uassignMul", UAssignMul);
   Nan::SetPrototypeMethod(tmpl, "udiv", Udiv);
   Nan::SetPrototypeMethod(tmpl, "umul2exp", Umul_2exp);
   Nan::SetPrototypeMethod(tmpl, "udiv2exp", Udiv_2exp);
@@ -302,6 +314,17 @@ NAN_METHOD(GmpBigInt::Badd) {
   info.GetReturnValue().Set(result);
 }
 
+NAN_METHOD(GmpBigInt::BAssignAdd) {
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  Nan::HandleScope scope;
+
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  mpz_add(*bigint->bigint_, *bigint->bigint_, *bi->bigint_);
+
+  info.GetReturnValue().Set(info.This());
+}
+
 NAN_METHOD(GmpBigInt::Bsub) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
   GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
@@ -316,6 +339,17 @@ NAN_METHOD(GmpBigInt::Bsub) {
   info.GetReturnValue().Set(result);
 }
 
+NAN_METHOD(GmpBigInt::BAssignSub) {
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  Nan::HandleScope scope;
+
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  mpz_sub(*bigint->bigint_, *bigint->bigint_, *bi->bigint_);
+
+  info.GetReturnValue().Set(info.This());
+}
+
 NAN_METHOD(GmpBigInt::Bmul) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
   GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
@@ -328,6 +362,17 @@ NAN_METHOD(GmpBigInt::Bmul) {
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
+}
+
+NAN_METHOD(GmpBigInt::BAssignMul) {
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  Nan::HandleScope scope;
+
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  mpz_mul(*bigint->bigint_, *bigint->bigint_, *bi->bigint_);
+
+  info.GetReturnValue().Set(info.This());
 }
 
 NAN_METHOD(GmpBigInt::Bdiv) {
@@ -359,6 +404,17 @@ NAN_METHOD(GmpBigInt::Uadd) {
   info.GetReturnValue().Set(result);
 }
 
+NAN_METHOD(GmpBigInt::UAssignAdd) {
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  Nan::HandleScope scope;
+
+  REQ_UINT64_ARG(0, x);
+  mpz_add_ui(*bigint->bigint_, *bigint->bigint_, x);
+
+  info.GetReturnValue().Set(info.This());
+}
+
 NAN_METHOD(GmpBigInt::Usub) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
   GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
@@ -373,6 +429,17 @@ NAN_METHOD(GmpBigInt::Usub) {
   info.GetReturnValue().Set(result);
 }
 
+NAN_METHOD(GmpBigInt::UAssignSub) {
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  Nan::HandleScope scope;
+
+  REQ_UINT64_ARG(0, x);
+  mpz_sub_ui(*bigint->bigint_, *bigint->bigint_, x);
+
+  info.GetReturnValue().Set(info.This());
+}
+
 NAN_METHOD(GmpBigInt::Umul) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
   GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
@@ -385,6 +452,17 @@ NAN_METHOD(GmpBigInt::Umul) {
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
+}
+
+NAN_METHOD(GmpBigInt::UAssignMul) {
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  Nan::HandleScope scope;
+
+  REQ_UINT64_ARG(0, x);
+  mpz_mul_ui(*bigint->bigint_, *bigint->bigint_, x);
+
+  info.GetReturnValue().Set(info.This());
 }
 
 NAN_METHOD(GmpBigInt::Udiv) {

@@ -100,6 +100,34 @@ GBI.add = function (value1, value2) {
     return new GBI(value1).add(value2);
 };
 
+GBI.prototype.assignAdd = function (value) {
+    if (value instanceof GBI) {
+        this._value.bassignAdd(value._value);
+        return this;
+    }
+    const type = typeof value;
+    if (type === 'number') {
+        if (value >= 0) {
+            this._value.uassignAdd(value);
+            return this;
+        }
+        this._value.uassignSub(-value);
+        return this;
+    }
+    if (type === 'string') {
+        this._value.bassignAdd(new GBI(value)._value);
+        return this;
+    }
+    throw new TypeError(`Unspecified add for type ${type}`);
+};
+
+GBI.assignAdd = function (value1, value2) {
+    if (value1 instanceof GBI) {
+        return value1.assignAdd(value2);
+    }
+    return new GBI(value1).assignAdd(value2);
+};
+
 GBI.prototype.sub = function (value) {
     if (value instanceof GBI) {
         return new GBI(this._value.bsub(value._value));
@@ -124,6 +152,34 @@ GBI.sub = function (value1, value2) {
     return new GBI(value1).sub(value2);
 };
 
+GBI.prototype.assignSub = function (value) {
+    if (value instanceof GBI) {
+        this._value.bassignSub(value._value);
+        return this;
+    }
+    const type = typeof value;
+    if (type === 'number') {
+        if (value >= 0) {
+            this._value.uassignSub(value);
+            return this;
+        }
+        this._value.uassignAdd(-value);
+        return this;
+    }
+    if (type === 'string') {
+        this._value.bassignSub(new GBI(value)._value);
+        return this;
+    }
+    throw new TypeError(`Unspecified sub for type ${type}`);
+};
+
+GBI.assignSub = function (value1, value2) {
+    if (value1 instanceof GBI) {
+        return value1.assignSub(value2);
+    }
+    return new GBI(value1).assignSub(value2);
+};
+
 GBI.prototype.mul = function (value) {
     if (value instanceof GBI) {
         return new GBI(this._value.bmul(value._value));
@@ -146,6 +202,34 @@ GBI.mul = function (value1, value2) {
         return value1.mul(value2);
     }
     return new GBI(value1).mul(value2);
+};
+
+GBI.prototype.assignMul = function (value) {
+    if (value instanceof GBI) {
+        this._value.bassignMul(value._value);
+        return this;
+    }
+    const type = typeof value;
+    if (type === 'number') {
+        if (value >= 0) {
+            this._value.uassignMul(value);
+            return this;
+        }
+        this._value.bassignMul(new GBI(value)._value);
+        return this;
+    }
+    if (type === 'string') {
+        this._value.bassignMul(new GBI(value)._value);
+        return this;
+    }
+    throw new TypeError(`Unspecified mul for type ${type}`);
+};
+
+GBI.assignMul = function (value1, value2) {
+    if (value1 instanceof GBI) {
+        return value1.assignMul(value2);
+    }
+    return new GBI(value1).assignMul(value2);
 };
 
 GBI.prototype.div = function (value) {
