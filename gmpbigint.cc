@@ -23,41 +23,41 @@ using namespace std;
   }                                                           \
   Local<String> VAR = Local<String>::Cast(info[I]);
 
-#define REQ_UTF8_ARG(I, VAR)                                  \
+#define REQ_UTF8_ARG(CONTEXT, I, VAR)                                  \
   if (info.Length() <= (I) || !info[I]->IsString()) {         \
     Nan::ThrowTypeError(                                        \
       "Argument " #I " must be a utf8 string");               \
     return;                                     \
   }                                                           \
-  String::Utf8Value VAR(info[I]->ToString());
+  String::Utf8Value VAR(info[I]->ToString(CONTEXT).ToLocalChecked());
 
 #define REQ_INT32_ARG(I, VAR)                                 \
   if (info.Length() <= (I) || !info[I]->IsInt32()) {          \
     Nan::ThrowTypeError("Argument " #I " must be an int32");    \
     return;                                     \
   }                                                           \
-  int32_t VAR = info[I]->ToInt32()->Value();
+  int32_t VAR = Nan::To<int32_t>(info[I]).FromJust();
 
 #define REQ_UINT32_ARG(I, VAR)                                \
   if (info.Length() <= (I) || !info[I]->IsUint32()) {         \
     Nan::ThrowTypeError("Argument " #I " must be a uint32");    \
     return;                                     \
   }                                                           \
-  uint32_t VAR = info[I]->ToUint32()->Value();
+  uint32_t VAR = Nan::To<int32_t>(info[I]).FromJust();
 
 #define REQ_INT64_ARG(I, VAR)                                 \
   if (info.Length() <= (I) || !info[I]->IsNumber()) {         \
     Nan::ThrowTypeError("Argument " #I " must be an int64");    \
     return;                                     \
   }                                                           \
-  int64_t VAR = info[I]->ToInteger()->Value();
+  int64_t VAR = Nan::To<int64_t>(info[I]).FromJust();
 
 #define REQ_UINT64_ARG(I, VAR)                                \
   if (info.Length() <= (I) || !info[I]->IsNumber()) {         \
     Nan::ThrowTypeError("Argument " #I " must be a uint64");    \
     return;                                     \
   }                                                           \
-  uint64_t VAR = info[I]->ToInteger()->Value();
+  uint64_t VAR = Nan::To<int64_t>(info[I]).FromJust();
 
 #define REQ_BOOL_ARG(I, VAR)                                  \
   if (info.Length() <= (I) || !info[I]->IsBoolean()) {        \
@@ -66,12 +66,12 @@ using namespace std;
   }                                                           \
   bool VAR = info[I]->ToBoolean()->Value();
 
-#define WRAP_RESULT(RES, VAR)                                           \
+#define WRAP_RESULT(CONTEXT, RES, VAR)                                           \
   Local<Value> arg[1] = { Nan::New<External>(static_cast<mpz_t *>(RES)) };  \
-  Local<Object> VAR = Nan::New<FunctionTemplate>(constructor_template)->      \
-    GetFunction()->NewInstance(1, arg);
+  Local<Value> VAR = Nan::New<Function>(constructor_template)->      \
+    NewInstance(CONTEXT, 1, arg).ToLocalChecked();
 
-class BigInt : public Nan::ObjectWrap {
+class GmpBigInt : public Nan::ObjectWrap {
   public:
     static void Initialize(Local<Object> target);
     mpz_t *bigint_;
@@ -79,14 +79,14 @@ class BigInt : public Nan::ObjectWrap {
     static void SetJSConditioner(Local<Function> constructor);
 
   protected:
-    static Nan::Persistent<FunctionTemplate> constructor_template;
+    static Nan::Persistent<Function> constructor_template;
 
-    BigInt(const String::Utf8Value& str, uint64_t base);
-    BigInt(uint64_t num);
-    BigInt(int64_t num);
-    BigInt(mpz_t *num);
-    BigInt();
-    ~BigInt();
+    GmpBigInt(const String::Utf8Value& str, uint64_t base);
+    GmpBigInt(uint64_t num);
+    GmpBigInt(int64_t num);
+    GmpBigInt(mpz_t *num);
+    GmpBigInt();
+    ~GmpBigInt();
 
     static NAN_METHOD(New);
     static NAN_METHOD(ToString);
@@ -126,22 +126,21 @@ class BigInt : public Nan::ObjectWrap {
 
 static gmp_randstate_t *		randstate	= NULL;
 
-Nan::Persistent<FunctionTemplate> BigInt::constructor_template;
+Nan::Persistent<Function> GmpBigInt::constructor_template;
 
-Nan::Persistent<Function> BigInt::js_conditioner;
+Nan::Persistent<Function> GmpBigInt::js_conditioner;
 
-void BigInt::SetJSConditioner(Local<Function> constructor) {
+void GmpBigInt::SetJSConditioner(Local<Function> constructor) {
   js_conditioner.Reset(constructor);
 }
 
-void BigInt::Initialize(v8::Local<v8::Object> target) {
+void GmpBigInt::Initialize(Local<Object> target) {
+  Local<Context> context = target->CreationContext();
   Nan::HandleScope scope;
 
   Local<FunctionTemplate> tmpl = Nan::New<FunctionTemplate>(New);
-  constructor_template.Reset(tmpl);
-
+  tmpl->SetClassName(Nan::New("GmpBigInt").ToLocalChecked());
   tmpl->InstanceTemplate()->SetInternalFieldCount(1);
-  tmpl->SetClassName(Nan::New("BigInt").ToLocalChecked());
 
   Nan::SetPrototypeMethod(tmpl, "toString", ToString);
   Nan::SetPrototypeMethod(tmpl, "badd", Badd);
@@ -177,10 +176,11 @@ void BigInt::Initialize(v8::Local<v8::Object> target) {
   Nan::SetPrototypeMethod(tmpl, "bitLength", BitLength);
   Nan::SetPrototypeMethod(tmpl, "bgcd", Bgcd);
 
-  target->Set(Nan::New("BigInt").ToLocalChecked(), tmpl->GetFunction());
+  constructor_template.Reset(tmpl->GetFunction(context).ToLocalChecked());
+  target->Set(context, Nan::New("GmpBigInt").ToLocalChecked(), tmpl->GetFunction(context).ToLocalChecked());
 }
 
-BigInt::BigInt (const v8::String::Utf8Value& str, uint64_t base) : Nan::ObjectWrap ()
+GmpBigInt::GmpBigInt (const v8::String::Utf8Value& str, uint64_t base) : Nan::ObjectWrap ()
 {
   bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*bigint_);
@@ -188,7 +188,7 @@ BigInt::BigInt (const v8::String::Utf8Value& str, uint64_t base) : Nan::ObjectWr
   mpz_set_str(*bigint_, *str, base);
 }
 
-BigInt::BigInt (uint64_t num) : Nan::ObjectWrap ()
+GmpBigInt::GmpBigInt (uint64_t num) : Nan::ObjectWrap ()
 {
   bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*bigint_);
@@ -196,7 +196,7 @@ BigInt::BigInt (uint64_t num) : Nan::ObjectWrap ()
   mpz_set_ui(*bigint_, num);
 }
 
-BigInt::BigInt (int64_t num) : Nan::ObjectWrap ()
+GmpBigInt::GmpBigInt (int64_t num) : Nan::ObjectWrap ()
 {
   bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*bigint_);
@@ -204,12 +204,12 @@ BigInt::BigInt (int64_t num) : Nan::ObjectWrap ()
   mpz_set_si(*bigint_, num);
 }
 
-BigInt::BigInt (mpz_t *num) : Nan::ObjectWrap ()
+GmpBigInt::GmpBigInt (mpz_t *num) : Nan::ObjectWrap ()
 {
   bigint_ = num;
 }
 
-BigInt::BigInt () : Nan::ObjectWrap ()
+GmpBigInt::GmpBigInt () : Nan::ObjectWrap ()
 {
   bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*bigint_);
@@ -217,35 +217,38 @@ BigInt::BigInt () : Nan::ObjectWrap ()
   mpz_set_ui(*bigint_, 0);
 }
 
-BigInt::~BigInt ()
+GmpBigInt::~GmpBigInt ()
 {
   mpz_clear(*bigint_);
   free(bigint_);
 }
 
-NAN_METHOD(BigInt::New)
+NAN_METHOD(GmpBigInt::New)
 {
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  Isolate* isolate = context->GetIsolate();
+
   if(!info.IsConstructCall()) {
     int len = info.Length();
-    Handle<Value>* newArgs = new Local<Value>[len];
+    Local<Value>* newArgs = new Local<Value>[len];
     for(int i = 0; i < len; i++) {
       newArgs[i] = info[i];
     }
-    Local<Value> newInst = Nan::New<FunctionTemplate>(constructor_template)->
-        GetFunction()->NewInstance(len, newArgs);
+    Local<Value> newInst = Nan::New<Function>(constructor_template)->
+        NewInstance(context, len, newArgs).ToLocalChecked();
     delete[] newArgs;
     info.GetReturnValue().Set(newInst);
     return;
   }
 
   Nan::HandleScope scope;
-  BigInt *bigint;
+  GmpBigInt *bigint;
   uint64_t base;
 
   if(info[0]->IsExternal()) {
     mpz_t *num =  static_cast<mpz_t *>(External::Cast(*(info[0]))->Value());
 
-    bigint = new BigInt(num);
+    bigint = new GmpBigInt(num);
   } else {
     int len = info.Length();
     Local<Object> ctx = Nan::New<Object>();
@@ -253,18 +256,27 @@ NAN_METHOD(BigInt::New)
     for(int i = 0; i < len; i++) {
       newArgs[i] = info[i];
     }
-    Local<Value> obj = Nan::New<Function>(js_conditioner)->
-      Call(ctx, info.Length(), newArgs);
+    MaybeLocal<Value> maybeObj = Nan::New<Function>(js_conditioner)->
+      Call(context, ctx, info.Length(), newArgs);
 
-    if(!*obj) {
-      Nan::ThrowError("Invalid type passed to BigInt constructor");
+    if(maybeObj.IsEmpty()) {
+      Nan::ThrowError("Invalid type passed to GmpBigInt constructor7");
       return;
     }
 
-    String::Utf8Value str(obj->ToObject()->Get(Nan::New("num").ToLocalChecked())->ToString());
-    base = obj->ToObject()->Get(Nan::New("base").ToLocalChecked())->ToNumber()->Value();
+    Local<Value> obj = maybeObj.ToLocalChecked();
 
-    bigint = new BigInt(str, base);
+    Local<Value> val;
+
+    val = obj->ToObject(context).ToLocalChecked()
+        ->Get(context, Nan::New("num").ToLocalChecked()).ToLocalChecked();
+    String::Utf8Value str(isolate, val);
+
+    val = obj->ToObject(context).ToLocalChecked()
+        ->Get(context, Nan::New("base").ToLocalChecked()).ToLocalChecked();
+    base = Nan::To<int64_t>(val).FromJust();
+
+    bigint = new GmpBigInt(str, base);
     delete[] newArgs;
   }
 
@@ -273,9 +285,9 @@ NAN_METHOD(BigInt::New)
   info.GetReturnValue().Set(info.This());
 }
 
-NAN_METHOD(BigInt::ToString)
+NAN_METHOD(GmpBigInt::ToString)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
   uint64_t base = 10;
 
@@ -294,66 +306,71 @@ NAN_METHOD(BigInt::ToString)
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Badd)
+NAN_METHOD(GmpBigInt::Badd)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
-  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
 
   mpz_add(*res, *bigint->bigint_, *bi->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
 
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Bsub)
+NAN_METHOD(GmpBigInt::Bsub)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
-  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_sub(*res, *bigint->bigint_, *bi->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
 
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Bmul)
+NAN_METHOD(GmpBigInt::Bmul)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   Nan::HandleScope scope;
 
-  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_mul(*res, *bigint->bigint_, *bi->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Bdiv)
+NAN_METHOD(GmpBigInt::Bdiv)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   Nan::HandleScope scope;
 
-  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_div(*res, *bigint->bigint_, *bi->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Uadd)
+NAN_METHOD(GmpBigInt::Uadd)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
@@ -361,14 +378,15 @@ NAN_METHOD(BigInt::Uadd)
   mpz_init(*res);
   mpz_add_ui(*res, *bigint->bigint_, x);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
 
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Usub)
+NAN_METHOD(GmpBigInt::Usub)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
@@ -376,13 +394,14 @@ NAN_METHOD(BigInt::Usub)
   mpz_init(*res);
   mpz_sub_ui(*res, *bigint->bigint_, x);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Umul)
+NAN_METHOD(GmpBigInt::Umul)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
@@ -390,13 +409,14 @@ NAN_METHOD(BigInt::Umul)
   mpz_init(*res);
   mpz_mul_ui(*res, *bigint->bigint_, x);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Udiv)
+NAN_METHOD(GmpBigInt::Udiv)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
@@ -404,13 +424,14 @@ NAN_METHOD(BigInt::Udiv)
   mpz_init(*res);
   mpz_div_ui(*res, *bigint->bigint_, x);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Umul_2exp)
+NAN_METHOD(GmpBigInt::Umul_2exp)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
@@ -418,13 +439,14 @@ NAN_METHOD(BigInt::Umul_2exp)
   mpz_init(*res);
   mpz_mul_2exp(*res, *bigint->bigint_, x);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Udiv_2exp)
+NAN_METHOD(GmpBigInt::Udiv_2exp)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
@@ -432,99 +454,105 @@ NAN_METHOD(BigInt::Udiv_2exp)
   mpz_init(*res);
   mpz_div_2exp(*res, *bigint->bigint_, x);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
-
 }
 
-NAN_METHOD(BigInt::Babs)
+NAN_METHOD(GmpBigInt::Babs)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_abs(*res, *bigint->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Bneg)
+NAN_METHOD(GmpBigInt::Bneg)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_neg(*res, *bigint->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Bmod)
+NAN_METHOD(GmpBigInt::Bmod)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
-  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_mod(*res, *bigint->bigint_, *bi->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Umod)
+NAN_METHOD(GmpBigInt::Umod)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_mod_ui(*res, *bigint->bigint_, x);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Bpowm)
+NAN_METHOD(GmpBigInt::Bpowm)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
-  BigInt *bi1 = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
-  BigInt *bi2 = Nan::ObjectWrap::Unwrap<BigInt>(info[1]->ToObject());
+  GmpBigInt *bi1 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  GmpBigInt *bi2 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[1]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_powm(*res, *bigint->bigint_, *bi1->bigint_, *bi2->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Upowm)
+NAN_METHOD(GmpBigInt::Upowm)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
   REQ_UINT64_ARG(0, x);
-  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[1]->ToObject());
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[1]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_powm_ui(*res, *bigint->bigint_, x, *bi->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Upow)
+NAN_METHOD(GmpBigInt::Upow)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_pow_ui(*res, *bigint->bigint_, x);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
@@ -532,23 +560,25 @@ NAN_METHOD(BigInt::Upow)
  * This makes no sense?  It doesn't act on the object but is a
  * prototype method.
  */
-NAN_METHOD(BigInt::Uupow)
+NAN_METHOD(GmpBigInt::Uupow)
 {
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
   REQ_UINT64_ARG(0, x);
   REQ_UINT64_ARG(1, y);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_ui_pow_ui(*res, x, y);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
 
   info.GetReturnValue().Set(result);
 }
 
 
-NAN_METHOD(BigInt::Brand0)
+NAN_METHOD(GmpBigInt::Brand0)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
@@ -562,163 +592,173 @@ NAN_METHOD(BigInt::Brand0)
 
   mpz_urandomm(*res, *randstate, *bigint->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Probprime)
+NAN_METHOD(GmpBigInt::Probprime)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
   REQ_UINT32_ARG(0, reps);
   info.GetReturnValue().Set(Nan::New<Number>(mpz_probab_prime_p(*bigint->bigint_, reps)));
 }
 
-NAN_METHOD(BigInt::Nextprime)
+NAN_METHOD(GmpBigInt::Nextprime)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_nextprime(*res, *bigint->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
 
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Bcompare)
+NAN_METHOD(GmpBigInt::Bcompare)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
-  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
 
   info.GetReturnValue().Set(Nan::New<Number>(mpz_cmp(*bigint->bigint_, *bi->bigint_)));
 }
 
-NAN_METHOD(BigInt::Scompare)
+NAN_METHOD(GmpBigInt::Scompare)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   REQ_INT64_ARG(0, x);
 
   info.GetReturnValue().Set(Nan::New<Number>(mpz_cmp_si(*bigint->bigint_, x)));
 }
 
-NAN_METHOD(BigInt::Ucompare)
+NAN_METHOD(GmpBigInt::Ucompare)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   REQ_UINT64_ARG(0, x);
 
   info.GetReturnValue().Set(Nan::New<Number>(mpz_cmp_ui(*bigint->bigint_, x)));
 }
 
-NAN_METHOD(BigInt::Band)
+NAN_METHOD(GmpBigInt::Band)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
-  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_and(*res, *bigint->bigint_, *bi->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
 
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Bor)
+NAN_METHOD(GmpBigInt::Bor)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
-  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_ior(*res, *bigint->bigint_, *bi->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
 
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Bxor)
+NAN_METHOD(GmpBigInt::Bxor)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
-  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_xor(*res, *bigint->bigint_, *bi->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Binvertm)
+NAN_METHOD(GmpBigInt::Binvertm)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
-  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_invert(*res, *bigint->bigint_, *bi->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Bsqrt)
+NAN_METHOD(GmpBigInt::Bsqrt)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_sqrt(*res, *bigint->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::Broot)
+NAN_METHOD(GmpBigInt::Broot)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_root(*res, *bigint->bigint_, x);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(BigInt::BitLength)
+NAN_METHOD(GmpBigInt::BitLength)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   int size = mpz_sizeinbase(*bigint->bigint_, 2);
   Local<Value> result = Nan::New<Integer>(size);
   info.GetReturnValue().Set(result);
 }
-NAN_METHOD(BigInt::Bgcd)
+
+NAN_METHOD(GmpBigInt::Bgcd)
 {
-  BigInt *bigint = Nan::ObjectWrap::Unwrap<BigInt>(info.This());
-  BigInt *bi = Nan::ObjectWrap::Unwrap<BigInt>(info[0]->ToObject());
+  Local<Context> context = info.GetIsolate()->GetCurrentContext();
+  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_gcd(*res, *bigint->bigint_, *bi->bigint_);
 
-  WRAP_RESULT(res, result);
+  WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
 static NAN_METHOD(SetJSConditioner)
 {
-  BigInt::SetJSConditioner(Local<Function>::Cast(info[0]));
+  GmpBigInt::SetJSConditioner(Local<Function>::Cast(info[0]));
   return;
 }
 
 extern "C" void
 init (Local<Object> target)
 {
-  BigInt::Initialize(target);
+  GmpBigInt::Initialize(target);
   Nan::SetMethod(target, "setJSConditioner", SetJSConditioner);
 }
 
-NODE_MODULE(bigint, init);
+NODE_MODULE(gmpbigint, init);

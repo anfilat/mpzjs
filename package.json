@@ -35,6 +35,6 @@
     "test": "tap test/*.js"
   },
   "dependencies": {
-    "nan": "^2.2.1"
+    "nan": "^2.14.0"
   }
 }
