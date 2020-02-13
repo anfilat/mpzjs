@@ -1,5 +1,4 @@
-var cc = new require('./build/Release/gmpbigint');
-var GmpBigInt = cc.GmpBigInt;
+const {GmpBigInt, setJSConditioner} = require('bindings')('gmpbigint.node');
 
 module.exports = GmpBigInt;
 
@@ -41,7 +40,7 @@ GmpBigInt.conditionArgs = function(num, base) {
     }
 };
 
-cc.setJSConditioner(GmpBigInt.conditionArgs);
+setJSConditioner(GmpBigInt.conditionArgs);
 
 GmpBigInt.prototype.inspect = function () {
     return '<GmpBigInt ' + this.toString(10) + '>';

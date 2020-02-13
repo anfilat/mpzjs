@@ -22,8 +22,12 @@
     "email": "mail@substack.net",
     "url": "http://substack.net"
   },
+  "dependencies": {
+    "bindings": "^1.5.0",
+    "nan": "^2.14.0"
+  },
   "devDependencies": {
-    "tap": "~0.2.5",
+    "tap": "^14.10.6",
     "put": "~0.0.6"
   },
   "license": "MIT/X11",
@@ -33,8 +37,5 @@
   "scripts": {
     "install": "node-gyp configure build",
     "test": "tap test/*.js"
-  },
-  "dependencies": {
-    "nan": "^2.14.0"
   }
 }
