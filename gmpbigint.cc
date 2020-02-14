@@ -75,15 +75,12 @@ class GmpBigInt : public Nan::ObjectWrap {
   public:
     static void Initialize(Local<Object> target);
     mpz_t *bigint_;
-    static Nan::Persistent<Function> js_conditioner;
-    static void SetJSConditioner(Local<Function> constructor);
 
   protected:
     static Nan::Persistent<Function> constructor_template;
 
-    GmpBigInt(const String::Utf8Value& str, uint64_t base);
-    GmpBigInt(uint64_t num);
-    GmpBigInt(int64_t num);
+    GmpBigInt(const String::Utf8Value& str, int64_t base);
+    GmpBigInt(double num);
     GmpBigInt(mpz_t *num);
     GmpBigInt();
     ~GmpBigInt();
@@ -133,12 +130,6 @@ class GmpBigInt : public Nan::ObjectWrap {
 static gmp_randstate_t *randstate = NULL;
 
 Nan::Persistent<Function> GmpBigInt::constructor_template;
-
-Nan::Persistent<Function> GmpBigInt::js_conditioner;
-
-void GmpBigInt::SetJSConditioner(Local<Function> constructor) {
-  js_conditioner.Reset(constructor);
-}
 
 void GmpBigInt::Initialize(Local<Object> target) {
   Local<Context> context = target->CreationContext();
@@ -192,25 +183,16 @@ void GmpBigInt::Initialize(Local<Object> target) {
   target->Set(context, Nan::New("GmpBigInt").ToLocalChecked(), tmpl->GetFunction(context).ToLocalChecked());
 }
 
-GmpBigInt::GmpBigInt (const v8::String::Utf8Value& str, uint64_t base) : Nan::ObjectWrap () {
+GmpBigInt::GmpBigInt (const v8::String::Utf8Value& str, int64_t base) : Nan::ObjectWrap () {
   bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*bigint_);
 
-  mpz_set_str(*bigint_, *str, base);
+  mpz_init_set_str(*bigint_, *str, base);
 }
 
-GmpBigInt::GmpBigInt (uint64_t num) : Nan::ObjectWrap () {
+GmpBigInt::GmpBigInt (double num) : Nan::ObjectWrap () {
   bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*bigint_);
 
-  mpz_set_ui(*bigint_, num);
-}
-
-GmpBigInt::GmpBigInt (int64_t num) : Nan::ObjectWrap () {
-  bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*bigint_);
-
-  mpz_set_si(*bigint_, num);
+  mpz_init_set_d(*bigint_, num);
 }
 
 GmpBigInt::GmpBigInt (mpz_t *num) : Nan::ObjectWrap () {
@@ -219,9 +201,8 @@ GmpBigInt::GmpBigInt (mpz_t *num) : Nan::ObjectWrap () {
 
 GmpBigInt::GmpBigInt () : Nan::ObjectWrap () {
   bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*bigint_);
 
-  mpz_set_ui(*bigint_, 0);
+  mpz_init_set_ui(*bigint_, 0);
 }
 
 GmpBigInt::~GmpBigInt () {
@@ -230,45 +211,25 @@ GmpBigInt::~GmpBigInt () {
 }
 
 NAN_METHOD(GmpBigInt::New) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  Isolate* isolate = context->GetIsolate();
   Nan::HandleScope scope;
   GmpBigInt *bigint;
-  uint64_t base;
 
   if(info[0]->IsExternal()) {
     mpz_t *num = static_cast<mpz_t *>(External::Cast(*(info[0]))->Value());
 
     bigint = new GmpBigInt(num);
+  } else if (info[0]->IsNumber()) {
+    double num = Nan::To<double>(info[0]).FromJust();
+
+    bigint = new GmpBigInt(num);
   } else {
-    int len = info.Length();
-    Local<Object> ctx = Nan::New<Object>();
-    Local<Value>* newArgs = new Local<Value>[len];
-    for(int i = 0; i < len; i++) {
-      newArgs[i] = info[i];
-    }
-    MaybeLocal<Value> maybeObj = Nan::New<Function>(js_conditioner)->
-      Call(context, ctx, info.Length(), newArgs);
+    Local<Context> context = info.GetIsolate()->GetCurrentContext();
+    Isolate* isolate = context->GetIsolate();
 
-    if(maybeObj.IsEmpty()) {
-      Nan::ThrowError("Invalid type passed to GmpBigInt constructor7");
-      return;
-    }
-
-    Local<Value> obj = maybeObj.ToLocalChecked();
-
-    Local<Value> val;
-
-    val = obj->ToObject(context).ToLocalChecked()
-        ->Get(context, Nan::New("num").ToLocalChecked()).ToLocalChecked();
-    String::Utf8Value str(isolate, val);
-
-    val = obj->ToObject(context).ToLocalChecked()
-        ->Get(context, Nan::New("base").ToLocalChecked()).ToLocalChecked();
-    base = Nan::To<int64_t>(val).FromJust();
+    String::Utf8Value str(isolate, info[0]->ToString(context).ToLocalChecked());
+    int64_t base = Nan::To<int64_t>(info[1]).FromJust();
 
     bigint = new GmpBigInt(str, base);
-    delete[] newArgs;
   }
 
   bigint->Wrap(info.This());
@@ -405,7 +366,6 @@ NAN_METHOD(GmpBigInt::Uadd) {
 }
 
 NAN_METHOD(GmpBigInt::UAssignAdd) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
   GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   Nan::HandleScope scope;
 
@@ -430,7 +390,6 @@ NAN_METHOD(GmpBigInt::Usub) {
 }
 
 NAN_METHOD(GmpBigInt::UAssignSub) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
   GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   Nan::HandleScope scope;
 
@@ -455,7 +414,6 @@ NAN_METHOD(GmpBigInt::Umul) {
 }
 
 NAN_METHOD(GmpBigInt::UAssignMul) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
   GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
   Nan::HandleScope scope;
 
@@ -757,15 +715,9 @@ NAN_METHOD(GmpBigInt::Bgcd) {
   info.GetReturnValue().Set(result);
 }
 
-static NAN_METHOD(SetJSConditioner) {
-  GmpBigInt::SetJSConditioner(Local<Function>::Cast(info[0]));
-  return;
-}
-
 extern "C" void
 init (Local<Object> target) {
   GmpBigInt::Initialize(target);
-  Nan::SetMethod(target, "setJSConditioner", SetJSConditioner);
 }
 
 NODE_MODULE(gmpbigint, init);

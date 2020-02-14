@@ -1,22 +1,31 @@
-const {GmpBigInt, setJSConditioner} = require('bindings')('gmpbigint.node');
+const {GmpBigInt} = require('bindings')('gmpbigint.node');
 
 function GBI(value, base) {
     if (!new.target) {
         return new GBI(value, base);
     }
 
+    if (value == null) {
+        throw new TypeError('Invalid type passed to GBI constructor');
+    }
+
     if (value instanceof GmpBigInt) {
         this._value = value;
-    } else {
-        this._value = new GmpBigInt(value, base);
+        return;
     }
+
+    if (typeof value === 'number') {
+        this._value = new GmpBigInt(value);
+        return;
+    }
+
+    const args = prepareArgs(value, base || 10);
+    this._value = new GmpBigInt(args.num, args.base);
 }
 
-module.exports = GBI;
-
-function conditionArgs(num, base) {
+function prepareArgs(num, base) {
     if (typeof num !== 'string') {
-        num = num.toString(base || 10);
+        num = num.toString(base);
     }
 
     if (num.match(/e\+/)) { // positive exponent
@@ -25,36 +34,33 @@ function conditionArgs(num, base) {
                 num: Math.floor(Number(num)).toString(),
                 base: 10
             };
-        } else {
-            const pow = Math.ceil(Math.log(num) / Math.log(2));
-            let n = (num / Math.pow(2, pow)).toString(2)
-                .replace(/^0/,'');
-            let i = n.length - n.indexOf('.');
-            n = n.replace(/\./,'');
-
-            for (; i <= pow; i++) {
-                n += '0';
-            }
-
-            return {
-                num : n,
-                base : 2,
-            };
         }
-    } else if (num.match(/e-/)) { // negative exponent
+
+        const pow = Math.ceil(Math.log2(num));
+        let n = (num / Math.pow(2, pow))
+            .toString(2)
+            .replace(/^0/, '')
+            .replace(/\./, '')
+            .padEnd(pow, '0');
+
         return {
-            num : Math.floor(Number(num)).toString(),
-            base : base || 10
-        };
-    } else {
-        return {
-            num : num,
-            base : base || 10,
+            num: n,
+            base: 2,
         };
     }
+    if (num.match(/e-/)) { // negative exponent
+        return {
+            num: Math.trunc(Number(num)).toString(),
+            base: 10
+        };
+    }
+    return {
+        num,
+        base,
+    };
 }
 
-setJSConditioner(conditionArgs);
+module.exports = GBI;
 
 GBI.prototype.toString = function (base) {
     if (base == null || base === 10) {
