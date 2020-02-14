@@ -1,20 +1,18 @@
-const test = require('tap').test;
 const GBI = require('../');
 
-test('add', function (t) {
+test('add', () => {
     for (let i = -10; i < 10; i++) {
         for (let j = -10; j < 10; j++) {
-            const is = i.toString();
             const js = j.toString();
             const ks = (i + j).toString();
-            t.same(GBI(i).add(j).toString(), ks);
-            t.same(GBI(i).add(js).toString(), ks);
-            t.same(GBI(i).add(GBI(j)).toString(), ks);
-            t.same(GBI.add(i, j).toString(), ks);
+            expect(GBI(i).add(j).toString()).toEqual(ks);
+            expect(GBI(i).add(js).toString()).toEqual(ks);
+            expect(GBI(i).add(GBI(j)).toString()).toEqual(ks);
+            expect(GBI.add(i, j).toString()).toEqual(ks);
         }
     }
 
-    t.same(
+    expect(
         GBI(
             '201781752444966478956292456789265633588628356858680927185287861892'
             + '9889675589272409635031813235465496971529430565627918846694860512'
@@ -23,28 +21,27 @@ test('add', function (t) {
             '939769862972759638577945343130228368606420083646071622223953046277'
             + '3784500359975110887672142614667937014937371109558223563373329424'
             + '0624814097369771481147215472578762824607080'
-        ).toString(),
+        ).toString()
+    ).toEqual(
         '1141551615417726117534237799919494002195048440504752549409240908170367'
         + '41759492475205227039558501334339864668016751861424100681899362117762'
         + '365770656374869982874551457998960521'
     );
-    t.end();
 });
 
-test('sub', function (t) {
+test('sub', () => {
     for (let i = -10; i < 10; i++) {
         for (let j = -10; j < 10; j++) {
-            const is = i.toString();
             const js = j.toString();
             const ks = (i - j).toString();
-            t.same(GBI(i).sub(j).toString(), ks);
-            t.same(GBI(i).sub(js).toString(), ks);
-            t.same(GBI(i).sub(GBI(j)).toString(), ks);
-            t.same(GBI.sub(i, j).toString(), ks);
+            expect(GBI(i).sub(j).toString()).toEqual(ks);
+            expect(GBI(i).sub(js).toString()).toEqual(ks);
+            expect(GBI(i).sub(GBI(j)).toString()).toEqual(ks);
+            expect(GBI.sub(i, j).toString()).toEqual(ks);
         }
     }
 
-    t.same(
+    expect(
         GBI(
             '635849762218952604062459342660379446997761295162166888134051068531'
             + '9813941775949841573516110003093332652267534768664621969514455380'
@@ -53,28 +50,27 @@ test('sub', function (t) {
             '757617343536280696839135295661092954931163607913400460585109207644'
             + '7966483882748233585856350085641718822741649072106343655764769889'
             + '6399869016678013515043471880323279258685478'
-        ).toString(),
+        ).toString()
+    ).toEqual(
         '-121767581317328092776675953000713507933402312751233572451058139112815'
         + '25421067983920123402400825483861704741143034417216862503145088348700'
         + '309898604710287263494312265061500182'
     );
-    t.end();
 });
 
-test('mul', function (t) {
+test('mul', () => {
     for (let i = -10; i < 10; i++) {
         for (let j = -10; j < 10; j++) {
-            const is = i.toString();
             const js = j.toString();
             const ks = (i * j).toString();
-            t.same(GBI(i).mul(j).toString(), ks);
-            t.same(GBI(i).mul(js).toString(), ks);
-            t.same(GBI(i).mul(GBI(j)).toString(), ks);
-            t.same(GBI.mul(i, j).toString(), ks);
+            expect(GBI(i).mul(j).toString()).toEqual(ks);
+            expect(GBI(i).mul(js).toString()).toEqual(ks);
+            expect(GBI(i).mul(GBI(j)).toString()).toEqual(ks);
+            expect(GBI.mul(i, j).toString()).toEqual(ks);
         }
     }
 
-    t.same(
+    expect(
         GBI(
             '433593290010590489671135819286259593426549306666324008679782084292'
             + '2446494189019075159822930571858728009485237489829138626896756141'
@@ -83,7 +79,8 @@ test('mul', function (t) {
             '127790264841901718791915669264129510947625523373763053776083279450'
             + '3886212911067061184379695097643279217271150419129022856601771338'
             + '794256383410400076210073482253089544155377'
-        ).toString(),
+        ).toString()
+    ).toEqual(
         '5540900136412485758752141142221047463857522755277604708501015732755989'
         + '17659432099233635577634197309727815375309484297883528869192732141328'
         + '99346769031695550850320602049507618052164677667378189154076988316301'
@@ -92,29 +89,25 @@ test('mul', function (t) {
         + '82'
     );
 
-    t.same(
-        GBI('10000000000000000000000000000').mul(-123).toString(),
-        '-1230000000000000000000000000000'
-    );
-    t.end();
+    expect(GBI('10000000000000000000000000000').mul(-123).toString())
+        .toEqual('-1230000000000000000000000000000');
 });
 
-test('div', function (t) {
+test('div', () => {
     for (let i = -10; i < 10; i++) {
         for (let j = -10; j < 10; j++) {
-            const is = i.toString();
             const js = j.toString();
             const ks = Math.floor(i / j).toString();
             if (ks.match(/^-?\d+$/)) { // ignore exceptions
-                t.same(GBI(i).div(j).toString(), ks);
-                t.same(GBI(i).div(js).toString(), ks);
-                t.same(GBI(i).div(GBI(j)).toString(), ks);
-                t.same(GBI.div(i, j).toString(), ks);
+                expect(GBI(i).div(j).toString()).toEqual(ks);
+                expect(GBI(i).div(js).toString()).toEqual(ks);
+                expect(GBI(i).div(GBI(j)).toString()).toEqual(ks);
+                expect(GBI.div(i, j).toString()).toEqual(ks);
             }
         }
     }
 
-    t.same(
+    expect(
         GBI(
             '433593290010590489671135819286259593426549306666324008679782084292'
             + '2446494189019075159822930571858728009485237489829138626896756141'
@@ -123,83 +116,81 @@ test('div', function (t) {
             '127790264841901718791915669264129510947625523373763053776083279450'
             + '3886212911067061184379695097643279217271150419129022856601771338'
             + '794256383410400076210073482253089544155377'
-        ).toString(),
+        ).toString()
+    ).toEqual(
         '33'
     );
-    t.end();
 });
 
-test('abs', function (t) {
-    t.same(
+test('abs', () => {
+    expect(
         GBI(
             '433593290010590489671135819286259593426549306666324008679782084292'
             + '2446494189019075159822930571858728009485237489829138626896756141'
             + '8738958337632249177044975686477011571044266'
-        ).abs().toString(),
+        ).abs().toString()
+    ).toEqual(
         '4335932900105904896711358192862595934265493066663240086797820842922446'
         + '49418901907515982293057185872800948523748982913862689675614187389583'
         + '37632249177044975686477011571044266'
     );
 
-    t.same(
+    expect(
         GBI(
             '-43359329001059048967113581928625959342654930666632400867978208429'
             + '2244649418901907515982293057185872800948523748982913862689675614'
             + '18738958337632249177044975686477011571044266'
-        ).abs().toString(),
+        ).abs().toString()
+    ).toEqual(
         '4335932900105904896711358192862595934265493066663240086797820842922446'
         + '49418901907515982293057185872800948523748982913862689675614187389583'
         + '37632249177044975686477011571044266'
     );
-    t.end();
 });
 
-test('neg', function (t) {
-    t.same(
+test('neg', () => {
+    expect(
         GBI(
             '433593290010590489671135819286259593426549306666324008679782084292'
             + '2446494189019075159822930571858728009485237489829138626896756141'
             + '8738958337632249177044975686477011571044266'
-        ).neg().toString(),
+        ).neg().toString()
+    ).toEqual(
         '-433593290010590489671135819286259593426549306666324008679782084292244'
         + '64941890190751598229305718587280094852374898291386268967561418738958'
         + '337632249177044975686477011571044266'
     );
 
-    t.same(
+    expect(
         GBI(
             '-43359329001059048967113581928625959342654930666632400867978208429'
             + '2244649418901907515982293057185872800948523748982913862689675614'
             + '18738958337632249177044975686477011571044266'
-        ).neg().toString(),
+        ).neg().toString()
+    ).toEqual(
         '4335932900105904896711358192862595934265493066663240086797820842922446'
         + '49418901907515982293057185872800948523748982913862689675614187389583'
         + '37632249177044975686477011571044266'
     );
-    t.end();
 });
 
-test('mod', function (t) {
+test('mod', () => {
     for (let i = 0; i < 10; i++) {
         for (let j = 0; j < 10; j++) {
-            const is = i.toString();
             const js = j.toString();
             if (!isNaN(i % j)) {
                 const ks = (i % j).toString();
-                t.same(GBI(i).mod(j).toString(), ks);
-                t.same(GBI(i).mod(js).toString(), ks);
-                t.same(GBI(i).mod(GBI(j)).toString(), ks);
-                t.same(GBI.mod(i, j).toString(), ks);
+                expect(GBI(i).mod(j).toString()).toEqual(ks);
+                expect(GBI(i).mod(js).toString()).toEqual(ks);
+                expect(GBI(i).mod(GBI(j)).toString()).toEqual(ks);
+                expect(GBI.mod(i, j).toString()).toEqual(ks);
             }
         }
     }
 
-    t.same(
+    expect(
         GBI('486541542410442549118519277483401413')
             .mod('1802185856709793916115771381388554')
             .toString()
-        ,
-        '1753546955507985683376775889880387'
-    );
-    t.end();
+    ).toEqual('1753546955507985683376775889880387');
 });

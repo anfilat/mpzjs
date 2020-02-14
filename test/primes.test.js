@@ -1,10 +1,9 @@
-const test = require('tap').test;
 const GBI = require('../');
 
-test('primes', function (t) {
+test('primes', () => {
     const ps = { 2: true, 3: true, 5: true, 7: true };
     for (let i = 0; i <= 10; i++) {
-        t.same(GBI(i).probPrime(), !!ps[i]);
+        expect(GBI(i).probPrime()).toEqual(!!ps[i]);
     }
 
     const ns = {
@@ -18,11 +17,8 @@ test('primes', function (t) {
         9987704933: '9987704953',
     };
 
-    Object.keys(ns).forEach(function (n) {
-        t.same(
-            GBI(n).nextPrime().toString(),
-            ns[n].toString()
-        );
+    Object.keys(ns).forEach(n => {
+        expect(GBI(n).nextPrime().toString()).toEqual(ns[n].toString());
     });
 
     const uniques = [
@@ -47,12 +43,10 @@ test('primes', function (t) {
         '5628290459057877291809182450381238927697314822133923421169378062922140081498734424133112032854812293',
     ];
 
-    [ uniques, wagstaff, big ].forEach(function (xs) {
-        xs.forEach(function (x) {
+    [ uniques, wagstaff, big ].forEach(xs => {
+        xs.forEach(x => {
             const p = GBI(x).probPrime();
-            t.ok(p === true || p === 'maybe');
+            expect(p === true || p === 'maybe').toBe(true);
         });
     });
-
-    t.end();
 });
