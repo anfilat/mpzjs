@@ -6,7 +6,8 @@ function GBI(value, base) {
     }
 
     if (value == null) {
-        throw new TypeError('Invalid type passed to GBI constructor');
+        this._value = new GmpBigInt();
+        return;
     }
 
     if (value instanceof GmpBigInt) {

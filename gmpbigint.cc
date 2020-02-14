@@ -202,7 +202,7 @@ GmpBigInt::GmpBigInt (mpz_t *num) : Nan::ObjectWrap () {
 GmpBigInt::GmpBigInt () : Nan::ObjectWrap () {
   bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
 
-  mpz_init_set_ui(*bigint_, 0);
+  mpz_init(*bigint_);
 }
 
 GmpBigInt::~GmpBigInt () {
@@ -214,7 +214,9 @@ NAN_METHOD(GmpBigInt::New) {
   Nan::HandleScope scope;
   GmpBigInt *bigint;
 
-  if(info[0]->IsExternal()) {
+  if (info.Length() == 0) {
+    bigint = new GmpBigInt();
+  } else if (info[0]->IsExternal()) {
     mpz_t *num = static_cast<mpz_t *>(External::Cast(*(info[0]))->Value());
 
     bigint = new GmpBigInt(num);

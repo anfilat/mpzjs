@@ -27,10 +27,7 @@ test('create', () => {
         expect(GBI('1.23456e+' + i).toNumber()).toEqual(Math.floor(1.23456 * Math.pow(10, i)));
     }
 
-    expect(() => {
-        GBI(undefined);
-    }).toThrow();
-    expect(() => {
-        GBI(null);
-    }).toThrow();
+    expect(GBI().toNumber()).toBe(0);
+    expect(GBI(undefined).toNumber()).toBe(0);
+    expect(GBI(null).toNumber()).toBe(0);
 });
