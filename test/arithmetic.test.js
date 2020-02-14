@@ -5,12 +5,32 @@ test('add', () => {
         for (let j = -10; j < 10; j++) {
             const js = j.toString();
             const ks = (i + j).toString();
+            const result = GBI();
+
             expect(GBI(i).add(j).toString()).toEqual(ks);
             expect(GBI(i).add(js).toString()).toEqual(ks);
             expect(GBI(i).add(GBI(j)).toString()).toEqual(ks);
-            expect(GBI.add(i, j).toString()).toEqual(ks);
+
+            GBI.add(result, i, j);
+            expect(result.toString()).toEqual(ks);
+            GBI.add(result, i, js);
+            expect(result.toString()).toEqual(ks);
+            GBI.add(result, GBI(i), GBI(j));
+            expect(result.toString()).toEqual(ks);
         }
     }
+
+    expect(() => {
+        GBI.add(1, 2);
+    }).toThrow();
+
+    expect(() => {
+        GBI.add(GBI(1), GBI(2));
+    }).toThrow();
+
+    expect(() => {
+        GBI.add(GBI(1));
+    }).toThrow();
 
     expect(
         GBI(
@@ -34,12 +54,32 @@ test('sub', () => {
         for (let j = -10; j < 10; j++) {
             const js = j.toString();
             const ks = (i - j).toString();
+            const result = GBI();
+
             expect(GBI(i).sub(j).toString()).toEqual(ks);
             expect(GBI(i).sub(js).toString()).toEqual(ks);
             expect(GBI(i).sub(GBI(j)).toString()).toEqual(ks);
-            expect(GBI.sub(i, j).toString()).toEqual(ks);
+
+            GBI.sub(result, i, j);
+            expect(result.toString()).toEqual(ks);
+            GBI.sub(result, i, js);
+            expect(result.toString()).toEqual(ks);
+            GBI.sub(result, GBI(i), GBI(j));
+            expect(result.toString()).toEqual(ks);
         }
     }
+
+    expect(() => {
+        GBI.sub(1, 2);
+    }).toThrow();
+
+    expect(() => {
+        GBI.sub(GBI(1), GBI(2));
+    }).toThrow();
+
+    expect(() => {
+        GBI.sub(GBI(1));
+    }).toThrow();
 
     expect(
         GBI(
@@ -63,12 +103,32 @@ test('mul', () => {
         for (let j = -10; j < 10; j++) {
             const js = j.toString();
             const ks = (i * j).toString();
+            const result = GBI();
+
             expect(GBI(i).mul(j).toString()).toEqual(ks);
             expect(GBI(i).mul(js).toString()).toEqual(ks);
             expect(GBI(i).mul(GBI(j)).toString()).toEqual(ks);
-            expect(GBI.mul(i, j).toString()).toEqual(ks);
+
+            GBI.mul(result, i, j);
+            expect(result.toString()).toEqual(ks);
+            GBI.mul(result, i, js);
+            expect(result.toString()).toEqual(ks);
+            GBI.mul(result, GBI(i), GBI(j));
+            expect(result.toString()).toEqual(ks);
         }
     }
+
+    expect(() => {
+        GBI.mul(1, 2);
+    }).toThrow();
+
+    expect(() => {
+        GBI.mul(GBI(1), GBI(2));
+    }).toThrow();
+
+    expect(() => {
+        GBI.mul(GBI(1));
+    }).toThrow();
 
     expect(
         GBI(
@@ -99,13 +159,33 @@ test('div', () => {
             const js = j.toString();
             const ks = Math.floor(i / j).toString();
             if (ks.match(/^-?\d+$/)) { // ignore exceptions
+                const result = GBI();
+
                 expect(GBI(i).div(j).toString()).toEqual(ks);
                 expect(GBI(i).div(js).toString()).toEqual(ks);
                 expect(GBI(i).div(GBI(j)).toString()).toEqual(ks);
-                expect(GBI.div(i, j).toString()).toEqual(ks);
+
+                GBI.div(result, i, j);
+                expect(result.toString()).toEqual(ks);
+                GBI.div(result, i, js);
+                expect(result.toString()).toEqual(ks);
+                GBI.div(result, GBI(i), GBI(j));
+                expect(result.toString()).toEqual(ks);
             }
         }
     }
+
+    expect(() => {
+        GBI.div(1, 2);
+    }).toThrow();
+
+    expect(() => {
+        GBI.div(GBI(1), GBI(2));
+    }).toThrow();
+
+    expect(() => {
+        GBI.div(GBI(1));
+    }).toThrow();
 
     expect(
         GBI(

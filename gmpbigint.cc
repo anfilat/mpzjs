@@ -88,20 +88,14 @@ class GmpBigInt : public Nan::ObjectWrap {
     static NAN_METHOD(New);
     static NAN_METHOD(ToString);
     static NAN_METHOD(ToNumber);
-    static NAN_METHOD(Badd);
-    static NAN_METHOD(BAssignAdd);
-    static NAN_METHOD(Bsub);
-    static NAN_METHOD(BAssignSub);
-    static NAN_METHOD(Bmul);
-    static NAN_METHOD(BAssignMul);
-    static NAN_METHOD(Bdiv);
-    static NAN_METHOD(Uadd);
-    static NAN_METHOD(UAssignAdd);
-    static NAN_METHOD(Usub);
-    static NAN_METHOD(UAssignSub);
-    static NAN_METHOD(Umul);
-    static NAN_METHOD(UAssignMul);
-    static NAN_METHOD(Udiv);
+    static NAN_METHOD(Add);
+    static NAN_METHOD(AssignAdd);
+    static NAN_METHOD(Sub);
+    static NAN_METHOD(AssignSub);
+    static NAN_METHOD(Mul);
+    static NAN_METHOD(AssignMul);
+    static NAN_METHOD(Div);
+    static NAN_METHOD(AssignDiv);
     static NAN_METHOD(Umul_2exp);
     static NAN_METHOD(Udiv_2exp);
     static NAN_METHOD(Babs);
@@ -141,20 +135,14 @@ void GmpBigInt::Initialize(Local<Object> target) {
 
   Nan::SetPrototypeMethod(tmpl, "toString", ToString);
   Nan::SetPrototypeMethod(tmpl, "toNumber", ToNumber);
-  Nan::SetPrototypeMethod(tmpl, "badd", Badd);
-  Nan::SetPrototypeMethod(tmpl, "bassignAdd", BAssignAdd);
-  Nan::SetPrototypeMethod(tmpl, "bsub", Bsub);
-  Nan::SetPrototypeMethod(tmpl, "bassignSub", BAssignSub);
-  Nan::SetPrototypeMethod(tmpl, "bmul", Bmul);
-  Nan::SetPrototypeMethod(tmpl, "bassignMul", BAssignMul);
-  Nan::SetPrototypeMethod(tmpl, "bdiv", Bdiv);
-  Nan::SetPrototypeMethod(tmpl, "uadd", Uadd);
-  Nan::SetPrototypeMethod(tmpl, "uassignAdd", UAssignAdd);
-  Nan::SetPrototypeMethod(tmpl, "usub", Usub);
-  Nan::SetPrototypeMethod(tmpl, "uassignSub", UAssignSub);
-  Nan::SetPrototypeMethod(tmpl, "umul", Umul);
-  Nan::SetPrototypeMethod(tmpl, "uassignMul", UAssignMul);
-  Nan::SetPrototypeMethod(tmpl, "udiv", Udiv);
+  Nan::SetPrototypeMethod(tmpl, "add", Add);
+  Nan::SetPrototypeMethod(tmpl, "assignAdd", AssignAdd);
+  Nan::SetPrototypeMethod(tmpl, "sub", Sub);
+  Nan::SetPrototypeMethod(tmpl, "assignSub", AssignSub);
+  Nan::SetPrototypeMethod(tmpl, "mul", Mul);
+  Nan::SetPrototypeMethod(tmpl, "assignMul", AssignMul);
+  Nan::SetPrototypeMethod(tmpl, "div", Div);
+  Nan::SetPrototypeMethod(tmpl, "assignDiv", AssignDiv);
   Nan::SetPrototypeMethod(tmpl, "umul2exp", Umul_2exp);
   Nan::SetPrototypeMethod(tmpl, "udiv2exp", Udiv_2exp);
   Nan::SetPrototypeMethod(tmpl, "babs", Babs);
@@ -240,203 +228,172 @@ NAN_METHOD(GmpBigInt::New) {
 }
 
 NAN_METHOD(GmpBigInt::ToString) {
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
   uint64_t base = 10;
-
   if (info.Length() > 0) {
     REQ_UINT64_ARG(0, tbase);
     base = tbase;
   }
-  char *to = mpz_get_str(0, base, *bigint->bigint_);
 
-  Local<Value> result = Nan::New<String>(to).ToLocalChecked();
+  char *to = mpz_get_str(0, base, *self->bigint_);
+
+  info.GetReturnValue().Set(Nan::New<String>(to).ToLocalChecked());
   free(to);
-
-  info.GetReturnValue().Set(result);
 }
 
 NAN_METHOD(GmpBigInt::ToNumber) {
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
-  info.GetReturnValue().Set(Nan::New<Number>(mpz_get_d(*bigint->bigint_)));
+  info.GetReturnValue().Set(Nan::New<Number>(mpz_get_d(*self->bigint_)));
 }
 
-NAN_METHOD(GmpBigInt::Badd) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+NAN_METHOD(GmpBigInt::Add) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
 
-  mpz_add(*res, *bigint->bigint_, *bi->bigint_);
-
-  WRAP_RESULT(context, res, result);
-
-  info.GetReturnValue().Set(result);
-}
-
-NAN_METHOD(GmpBigInt::BAssignAdd) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  Nan::HandleScope scope;
-
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_add(*bigint->bigint_, *bigint->bigint_, *bi->bigint_);
-
-  info.GetReturnValue().Set(info.This());
-}
-
-NAN_METHOD(GmpBigInt::Bsub) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
-  mpz_sub(*res, *bigint->bigint_, *bi->bigint_);
-
-  WRAP_RESULT(context, res, result);
-
-  info.GetReturnValue().Set(result);
-}
-
-NAN_METHOD(GmpBigInt::BAssignSub) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  Nan::HandleScope scope;
-
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_sub(*bigint->bigint_, *bigint->bigint_, *bi->bigint_);
-
-  info.GetReturnValue().Set(info.This());
-}
-
-NAN_METHOD(GmpBigInt::Bmul) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  Nan::HandleScope scope;
-
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
-  mpz_mul(*res, *bigint->bigint_, *bi->bigint_);
+  if (info[0]->IsNumber()) {
+    auto num = Nan::To<int64_t>(info[0]).FromJust();
+    if (num >= 0) {
+      mpz_add_ui(*res, *self->bigint_, num);
+    } else {
+      mpz_sub_ui(*res, *self->bigint_, -num);
+    }
+  } else {
+    auto *num = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+    mpz_add(*res, *self->bigint_, *num->bigint_);
+  }
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::BAssignMul) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  Nan::HandleScope scope;
+NAN_METHOD(GmpBigInt::AssignAdd) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
 
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_mul(*bigint->bigint_, *bigint->bigint_, *bi->bigint_);
-
-  info.GetReturnValue().Set(info.This());
+  if (info[1]->IsNumber()) {
+    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+    if (num2 >= 0) {
+      mpz_add_ui(*self->bigint_, *num1->bigint_, num2);
+    } else {
+      mpz_sub_ui(*self->bigint_, *num1->bigint_, -num2);
+    }
+  } else {
+    auto *num2 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[1]->ToObject(context).ToLocalChecked());
+    mpz_add(*self->bigint_, *num1->bigint_, *num2->bigint_);
+  }
 }
 
-NAN_METHOD(GmpBigInt::Bdiv) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  Nan::HandleScope scope;
+NAN_METHOD(GmpBigInt::Sub) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_div(*res, *bigint->bigint_, *bi->bigint_);
+
+  if (info[0]->IsNumber()) {
+    auto num = Nan::To<int64_t>(info[0]).FromJust();
+    if (num >= 0) {
+      mpz_sub_ui(*res, *self->bigint_, num);
+    } else {
+      mpz_add_ui(*res, *self->bigint_, -num);
+    }
+  } else {
+    auto *num = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+    mpz_sub(*res, *self->bigint_, *num->bigint_);
+  }
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Uadd) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  Nan::HandleScope scope;
+NAN_METHOD(GmpBigInt::AssignSub) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
 
-  REQ_UINT64_ARG(0, x);
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
-  mpz_add_ui(*res, *bigint->bigint_, x);
-
-  WRAP_RESULT(context, res, result);
-
-  info.GetReturnValue().Set(result);
+  if (info[1]->IsNumber()) {
+    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+    if (num2 >= 0) {
+      mpz_sub_ui(*self->bigint_, *num1->bigint_, num2);
+    } else {
+      mpz_add_ui(*self->bigint_, *num1->bigint_, -num2);
+    }
+  } else {
+    auto *num2 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[1]->ToObject(context).ToLocalChecked());
+    mpz_sub(*self->bigint_, *num1->bigint_, *num2->bigint_);
+  }
 }
 
-NAN_METHOD(GmpBigInt::UAssignAdd) {
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  Nan::HandleScope scope;
+NAN_METHOD(GmpBigInt::Mul) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
-  REQ_UINT64_ARG(0, x);
-  mpz_add_ui(*bigint->bigint_, *bigint->bigint_, x);
-
-  info.GetReturnValue().Set(info.This());
-}
-
-NAN_METHOD(GmpBigInt::Usub) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  Nan::HandleScope scope;
-
-  REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_sub_ui(*res, *bigint->bigint_, x);
+
+  if (info[0]->IsNumber()) {
+    auto num = Nan::To<int64_t>(info[0]).FromJust();
+    mpz_mul_ui(*res, *self->bigint_, num);
+  } else {
+    auto *num = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+    mpz_mul(*res, *self->bigint_, *num->bigint_);
+  }
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::UAssignSub) {
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  Nan::HandleScope scope;
+NAN_METHOD(GmpBigInt::AssignMul) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
 
-  REQ_UINT64_ARG(0, x);
-  mpz_sub_ui(*bigint->bigint_, *bigint->bigint_, x);
-
-  info.GetReturnValue().Set(info.This());
+  if (info[1]->IsNumber()) {
+    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+    mpz_mul_ui(*self->bigint_, *num1->bigint_, num2);
+  } else {
+    auto *num2 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[1]->ToObject(context).ToLocalChecked());
+    mpz_mul(*self->bigint_, *num1->bigint_, *num2->bigint_);
+  }
 }
 
-NAN_METHOD(GmpBigInt::Umul) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  Nan::HandleScope scope;
+NAN_METHOD(GmpBigInt::Div) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
 
-  REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_mul_ui(*res, *bigint->bigint_, x);
+
+  if (info[0]->IsNumber()) {
+    auto num = Nan::To<int64_t>(info[0]).FromJust();
+    mpz_div_ui(*res, *self->bigint_, num);
+  } else {
+    auto *num = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+    mpz_div(*res, *self->bigint_, *num->bigint_);
+  }
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::UAssignMul) {
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  Nan::HandleScope scope;
+NAN_METHOD(GmpBigInt::AssignDiv) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
 
-  REQ_UINT64_ARG(0, x);
-  mpz_mul_ui(*bigint->bigint_, *bigint->bigint_, x);
-
-  info.GetReturnValue().Set(info.This());
-}
-
-NAN_METHOD(GmpBigInt::Udiv) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  Nan::HandleScope scope;
-
-  REQ_UINT64_ARG(0, x);
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
-  mpz_div_ui(*res, *bigint->bigint_, x);
-
-  WRAP_RESULT(context, res, result);
-  info.GetReturnValue().Set(result);
+  if (info[1]->IsNumber()) {
+    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+    mpz_div_ui(*self->bigint_, *num1->bigint_, num2);
+  } else {
+    auto *num2 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[1]->ToObject(context).ToLocalChecked());
+    mpz_div(*self->bigint_, *num1->bigint_, *num2->bigint_);
+  }
 }
 
 NAN_METHOD(GmpBigInt::Umul_2exp) {
