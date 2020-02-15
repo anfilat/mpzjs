@@ -16,28 +16,6 @@ using namespace v8;
 using namespace node;
 using namespace std;
 
-#define REQ_STR_ARG(I, VAR)                                   \
-  if (info.Length()<= (I) || !info[I]->IsString()) {          \
-    Nan::ThrowTypeError("Argument " #I " must be a string");    \
-    return;                                     \
-  }                                                           \
-  Local<String> VAR = Local<String>::Cast(info[I]);
-
-#define REQ_UTF8_ARG(CONTEXT, I, VAR)                                  \
-  if (info.Length() <= (I) || !info[I]->IsString()) {         \
-    Nan::ThrowTypeError(                                        \
-      "Argument " #I " must be a utf8 string");               \
-    return;                                     \
-  }                                                           \
-  String::Utf8Value VAR(info[I]->ToString(CONTEXT).ToLocalChecked());
-
-#define REQ_INT32_ARG(I, VAR)                                 \
-  if (info.Length() <= (I) || !info[I]->IsInt32()) {          \
-    Nan::ThrowTypeError("Argument " #I " must be an int32");    \
-    return;                                     \
-  }                                                           \
-  int32_t VAR = Nan::To<int32_t>(info[I]).FromJust();
-
 #define REQ_UINT32_ARG(I, VAR)                                \
   if (info.Length() <= (I) || !info[I]->IsUint32()) {         \
     Nan::ThrowTypeError("Argument " #I " must be a uint32");    \
@@ -58,13 +36,6 @@ using namespace std;
     return;                                     \
   }                                                           \
   uint64_t VAR = Nan::To<int64_t>(info[I]).FromJust();
-
-#define REQ_BOOL_ARG(I, VAR)                                  \
-  if (info.Length() <= (I) || !info[I]->IsBoolean()) {        \
-    Nan::ThrowTypeError("Argument " #I " must be a boolean");   \
-    return;                                     \
-  }                                                           \
-  bool VAR = info[I]->ToBoolean()->Value();
 
 #define WRAP_RESULT(CONTEXT, RES, VAR)                                           \
   Local<Value> arg[1] = { Nan::New<External>(static_cast<mpz_t *>(RES)) };  \
@@ -96,12 +67,20 @@ class GmpJS : public Nan::ObjectWrap {
     static NAN_METHOD(AssignMul);
     static NAN_METHOD(Div);
     static NAN_METHOD(AssignDiv);
-    static NAN_METHOD(Umul_2exp);
-    static NAN_METHOD(Udiv_2exp);
+    static NAN_METHOD(Mod);
+    static NAN_METHOD(AssignMod);
+    static NAN_METHOD(And);
+    static NAN_METHOD(AssignAnd);
+    static NAN_METHOD(Or);
+    static NAN_METHOD(AssignOr);
+    static NAN_METHOD(Xor);
+    static NAN_METHOD(AssignXor);
+    static NAN_METHOD(ShiftLeft);
+    static NAN_METHOD(AssignShiftLeft);
+    static NAN_METHOD(ShiftRight);
+    static NAN_METHOD(AssignShiftRight);
     static NAN_METHOD(Babs);
     static NAN_METHOD(Bneg);
-    static NAN_METHOD(Bmod);
-    static NAN_METHOD(Umod);
     static NAN_METHOD(Bpowm);
     static NAN_METHOD(Upowm);
     static NAN_METHOD(Upow);
@@ -111,9 +90,6 @@ class GmpJS : public Nan::ObjectWrap {
     static NAN_METHOD(Bcompare);
     static NAN_METHOD(Scompare);
     static NAN_METHOD(Ucompare);
-    static NAN_METHOD(Band);
-    static NAN_METHOD(Bor);
-    static NAN_METHOD(Bxor);
     static NAN_METHOD(Binvertm);
     static NAN_METHOD(Bsqrt);
     static NAN_METHOD(Broot);
@@ -143,12 +119,20 @@ void GmpJS::Initialize(Local<Object> target) {
   Nan::SetPrototypeMethod(tmpl, "assignMul", AssignMul);
   Nan::SetPrototypeMethod(tmpl, "div", Div);
   Nan::SetPrototypeMethod(tmpl, "assignDiv", AssignDiv);
-  Nan::SetPrototypeMethod(tmpl, "umul2exp", Umul_2exp);
-  Nan::SetPrototypeMethod(tmpl, "udiv2exp", Udiv_2exp);
+  Nan::SetPrototypeMethod(tmpl, "mod", Mod);
+  Nan::SetPrototypeMethod(tmpl, "assignMod", AssignMod);
+  Nan::SetPrototypeMethod(tmpl, "and", And);
+  Nan::SetPrototypeMethod(tmpl, "assignAnd", AssignAnd);
+  Nan::SetPrototypeMethod(tmpl, "or", Or);
+  Nan::SetPrototypeMethod(tmpl, "assignOr", AssignOr);
+  Nan::SetPrototypeMethod(tmpl, "xor", Xor);
+  Nan::SetPrototypeMethod(tmpl, "assignXor", AssignXor);
+  Nan::SetPrototypeMethod(tmpl, "shiftLeft", ShiftLeft);
+  Nan::SetPrototypeMethod(tmpl, "assignShiftLeft", AssignShiftLeft);
+  Nan::SetPrototypeMethod(tmpl, "shiftRight", ShiftRight);
+  Nan::SetPrototypeMethod(tmpl, "assignShiftRight", AssignShiftRight);
   Nan::SetPrototypeMethod(tmpl, "babs", Babs);
   Nan::SetPrototypeMethod(tmpl, "bneg", Bneg);
-  Nan::SetPrototypeMethod(tmpl, "bmod", Bmod);
-  Nan::SetPrototypeMethod(tmpl, "umod", Umod);
   Nan::SetPrototypeMethod(tmpl, "bpowm", Bpowm);
   Nan::SetPrototypeMethod(tmpl, "upowm", Upowm);
   Nan::SetPrototypeMethod(tmpl, "upow", Upow);
@@ -158,9 +142,6 @@ void GmpJS::Initialize(Local<Object> target) {
   Nan::SetPrototypeMethod(tmpl, "bcompare", Bcompare);
   Nan::SetPrototypeMethod(tmpl, "scompare", Scompare);
   Nan::SetPrototypeMethod(tmpl, "ucompare", Ucompare);
-  Nan::SetPrototypeMethod(tmpl, "band", Band);
-  Nan::SetPrototypeMethod(tmpl, "bor", Bor);
-  Nan::SetPrototypeMethod(tmpl, "bxor", Bxor);
   Nan::SetPrototypeMethod(tmpl, "binvertm", Binvertm);
   Nan::SetPrototypeMethod(tmpl, "bsqrt", Bsqrt);
   Nan::SetPrototypeMethod(tmpl, "broot", Broot);
@@ -396,32 +377,152 @@ NAN_METHOD(GmpJS::AssignDiv) {
   }
 }
 
-NAN_METHOD(GmpJS::Umul_2exp) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
-  Nan::HandleScope scope;
+NAN_METHOD(GmpJS::Mod) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
-  REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_mul_2exp(*res, *bigint->value, x);
+
+  if (info[0]->IsNumber()) {
+    auto num = Nan::To<int64_t>(info[0]).FromJust();
+    mpz_mod_ui(*res, *self->value, num);
+  } else {
+    auto *num = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+    mpz_mod(*res, *self->value, *num->value);
+  }
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpJS::Udiv_2exp) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
-  Nan::HandleScope scope;
+NAN_METHOD(GmpJS::AssignMod) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
 
-  REQ_UINT64_ARG(0, x);
+  if (info[1]->IsNumber()) {
+    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+    mpz_mod_ui(*self->value, *num1->value, num2);
+  } else {
+    auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
+    mpz_mod(*self->value, *num1->value, *num2->value);
+  }
+}
+
+NAN_METHOD(GmpJS::And) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_div_2exp(*res, *bigint->value, x);
+
+  auto *num = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+  mpz_and(*res, *self->value, *num->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
+}
+
+NAN_METHOD(GmpJS::AssignAnd) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+  auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
+
+  mpz_and(*self->value, *num1->value, *num2->value);
+}
+
+NAN_METHOD(GmpJS::Or) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+
+  auto *num = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+  mpz_ior(*res, *self->value, *num->value);
+
+  WRAP_RESULT(context, res, result);
+  info.GetReturnValue().Set(result);
+}
+
+NAN_METHOD(GmpJS::AssignOr) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+  auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
+
+  mpz_ior(*self->value, *num1->value, *num2->value);
+}
+
+NAN_METHOD(GmpJS::Xor) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+
+  auto *num = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+  mpz_xor(*res, *self->value, *num->value);
+
+  WRAP_RESULT(context, res, result);
+  info.GetReturnValue().Set(result);
+}
+
+NAN_METHOD(GmpJS::AssignXor) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+  auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
+
+  mpz_xor(*self->value, *num1->value, *num2->value);
+}
+
+NAN_METHOD(GmpJS::ShiftLeft) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+
+  auto num = Nan::To<int64_t>(info[0]).FromJust();
+  mpz_mul_2exp(*res, *self->value, num);
+
+  WRAP_RESULT(context, res, result);
+  info.GetReturnValue().Set(result);
+}
+
+NAN_METHOD(GmpJS::AssignShiftLeft) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+  auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+
+  mpz_mul_2exp(*self->value, *num1->value, num2);
+}
+
+NAN_METHOD(GmpJS::ShiftRight) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+
+  auto num = Nan::To<int64_t>(info[0]).FromJust();
+  mpz_div_2exp(*res, *self->value, num);
+
+  WRAP_RESULT(context, res, result);
+  info.GetReturnValue().Set(result);
+}
+
+NAN_METHOD(GmpJS::AssignShiftRight) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+  auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+
+  mpz_div_2exp(*self->value, *num1->value, num2);
 }
 
 NAN_METHOD(GmpJS::Babs) {
@@ -443,32 +544,6 @@ NAN_METHOD(GmpJS::Bneg) {
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
   mpz_neg(*res, *bigint->value);
-
-  WRAP_RESULT(context, res, result);
-  info.GetReturnValue().Set(result);
-}
-
-NAN_METHOD(GmpJS::Bmod) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
-
-  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
-  mpz_mod(*res, *bigint->value, *bi->value);
-
-  WRAP_RESULT(context, res, result);
-  info.GetReturnValue().Set(result);
-}
-
-NAN_METHOD(GmpJS::Umod) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
-
-  REQ_UINT64_ARG(0, x);
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
-  mpz_mod_ui(*res, *bigint->value, x);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
@@ -575,46 +650,6 @@ NAN_METHOD(GmpJS::Ucompare) {
   REQ_UINT64_ARG(0, x);
 
   info.GetReturnValue().Set(Nan::New<Number>(mpz_cmp_ui(*bigint->value, x)));
-}
-
-NAN_METHOD(GmpJS::Band) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
-
-  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
-  mpz_and(*res, *bigint->value, *bi->value);
-
-  WRAP_RESULT(context, res, result);
-
-  info.GetReturnValue().Set(result);
-}
-
-NAN_METHOD(GmpJS::Bor) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
-
-  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
-  mpz_ior(*res, *bigint->value, *bi->value);
-
-  WRAP_RESULT(context, res, result);
-
-  info.GetReturnValue().Set(result);
-}
-
-NAN_METHOD(GmpJS::Bxor) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
-  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
-  mpz_xor(*res, *bigint->value, *bi->value);
-
-  WRAP_RESULT(context, res, result);
-  info.GetReturnValue().Set(result);
 }
 
 NAN_METHOD(GmpJS::Binvertm) {
