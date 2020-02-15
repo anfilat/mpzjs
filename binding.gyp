@@ -2,7 +2,7 @@
   'targets': [
     {
       'target_name': 'gmpbigint',
-      'sources': [ 'gmpbigint.cc' ],
+      'sources': [ 'src/gmpbigint.cc' ],
       'include_dirs': [
         "<!(node -e \"require('nan')\")"
       ],

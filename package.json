@@ -2,7 +2,7 @@
   "name": "bigint",
   "version": "0.4.2",
   "description": "Arbitrary-precision integer arithmetic using libgmp",
-  "main": "./index.js",
+  "main": "./lib/index.js",
   "engines": {
     "node": ">=12.0"
   },
@@ -27,7 +27,6 @@
     "url": "http://substack.net"
   },
   "scripts": {
-    "install": "node-gyp configure build",
     "test": "jest"
   },
   "dependencies": {
