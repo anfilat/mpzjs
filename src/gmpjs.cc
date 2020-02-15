@@ -59,6 +59,7 @@ class GmpJS : public Nan::ObjectWrap {
     static NAN_METHOD(New);
     static NAN_METHOD(ToString);
     static NAN_METHOD(ToNumber);
+    static NAN_METHOD(Set);
     static NAN_METHOD(Add);
     static NAN_METHOD(AssignAdd);
     static NAN_METHOD(Sub);
@@ -69,6 +70,8 @@ class GmpJS : public Nan::ObjectWrap {
     static NAN_METHOD(AssignDiv);
     static NAN_METHOD(Mod);
     static NAN_METHOD(AssignMod);
+    static NAN_METHOD(AssignAddMul);
+    static NAN_METHOD(AssignSubMul);
     static NAN_METHOD(And);
     static NAN_METHOD(AssignAnd);
     static NAN_METHOD(Or);
@@ -117,6 +120,7 @@ void GmpJS::Initialize(Local<Object> target) {
 
   Nan::SetPrototypeMethod(tmpl, "toString", ToString);
   Nan::SetPrototypeMethod(tmpl, "toNumber", ToNumber);
+  Nan::SetPrototypeMethod(tmpl, "set", Set);
   Nan::SetPrototypeMethod(tmpl, "add", Add);
   Nan::SetPrototypeMethod(tmpl, "assignAdd", AssignAdd);
   Nan::SetPrototypeMethod(tmpl, "sub", Sub);
@@ -127,6 +131,8 @@ void GmpJS::Initialize(Local<Object> target) {
   Nan::SetPrototypeMethod(tmpl, "assignDiv", AssignDiv);
   Nan::SetPrototypeMethod(tmpl, "mod", Mod);
   Nan::SetPrototypeMethod(tmpl, "assignMod", AssignMod);
+  Nan::SetPrototypeMethod(tmpl, "assignAddMul", AssignAddMul);
+  Nan::SetPrototypeMethod(tmpl, "assignSubMul", AssignSubMul);
   Nan::SetPrototypeMethod(tmpl, "and", And);
   Nan::SetPrototypeMethod(tmpl, "assignAnd", AssignAnd);
   Nan::SetPrototypeMethod(tmpl, "or", Or);
@@ -202,15 +208,15 @@ NAN_METHOD(GmpJS::New) {
 
     self = new GmpJS(num);
   } else if (info[0]->IsNumber()) {
-    double num = Nan::To<double>(info[0]).FromJust();
+    auto num = Nan::To<double>(info[0]).FromJust();
 
     self = new GmpJS(num);
   } else {
-    Local<Context> context = info.GetIsolate()->GetCurrentContext();
-    Isolate* isolate = context->GetIsolate();
+    auto context = info.GetIsolate()->GetCurrentContext();
+    auto isolate = context->GetIsolate();
 
     String::Utf8Value str(isolate, info[0]->ToString(context).ToLocalChecked());
-    int64_t base = Nan::To<int64_t>(info[1]).FromJust();
+    auto base = Nan::To<int64_t>(info[1]).FromJust();
 
     self = new GmpJS(str, base);
   }
@@ -239,6 +245,25 @@ NAN_METHOD(GmpJS::ToNumber) {
   auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   info.GetReturnValue().Set(Nan::New<Number>(mpz_get_d(*self->value)));
+}
+
+NAN_METHOD(GmpJS::Set) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+
+  if (info[0]->IsNumber()) {
+    auto num = Nan::To<double>(info[0]).FromJust();
+    mpz_set_d(*self->value, num);
+  } else if (info[0]->IsString()) {
+    auto isolate = context->GetIsolate();
+
+    String::Utf8Value str(isolate, info[0]->ToString(context).ToLocalChecked());
+    auto base = Nan::To<int64_t>(info[1]).FromJust();
+    mpz_set_str(*self->value, *str, base);
+  } else {
+    auto *num = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+    mpz_set(*self->value, *num->value);
+  }
 }
 
 NAN_METHOD(GmpJS::Add) {
@@ -419,6 +444,34 @@ NAN_METHOD(GmpJS::AssignMod) {
   } else {
     auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
     mpz_mod(*self->value, *num1->value, *num2->value);
+  }
+}
+
+NAN_METHOD(GmpJS::AssignAddMul) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+
+  if (info[1]->IsNumber()) {
+    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+    mpz_addmul_ui(*self->value, *num1->value, num2);
+  } else {
+    auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
+    mpz_addmul(*self->value, *num1->value, *num2->value);
+  }
+}
+
+NAN_METHOD(GmpJS::AssignSubMul) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+
+  if (info[1]->IsNumber()) {
+    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+    mpz_submul_ui(*self->value, *num1->value, num2);
+  } else {
+    auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
+    mpz_submul(*self->value, *num1->value, *num2->value);
   }
 }
 

@@ -13,6 +13,8 @@ test('not', () => {
     expect(result.toNumber()).toBe(~1);
     MPZ.not(result, MPZ('1111', 2));
     expect(result.toNumber()).toBe(~0b1111);
+    MPZ.not(result, 42);
+    expect(result.toNumber()).toBe(~42);
 });
 
 test('not exceptions', () => {
