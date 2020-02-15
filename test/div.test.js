@@ -1,4 +1,4 @@
-const GBI = require('../');
+const {MPZ} = require('../');
 
 test('div', () => {
     for (let i = -10; i < 10; i++) {
@@ -6,36 +6,36 @@ test('div', () => {
             const js = j.toString();
             const ks = Math.floor(i / j).toString();
             if (ks.match(/^-?\d+$/)) { // ignore exceptions
-                const result = GBI();
+                const result = MPZ();
 
-                expect(GBI(i).div(j).toString()).toEqual(ks);
-                expect(GBI(i).div(js).toString()).toEqual(ks);
-                expect(GBI(i).div(GBI(j)).toString()).toEqual(ks);
+                expect(MPZ(i).div(j).toString()).toEqual(ks);
+                expect(MPZ(i).div(js).toString()).toEqual(ks);
+                expect(MPZ(i).div(MPZ(j)).toString()).toEqual(ks);
 
-                GBI.div(result, i, j);
+                MPZ.div(result, i, j);
                 expect(result.toString()).toEqual(ks);
-                GBI.div(result, i, js);
+                MPZ.div(result, i, js);
                 expect(result.toString()).toEqual(ks);
-                GBI.div(result, GBI(i), GBI(j));
+                MPZ.div(result, MPZ(i), MPZ(j));
                 expect(result.toString()).toEqual(ks);
             }
         }
     }
 
     expect(() => {
-        GBI.div(1, 2);
+        MPZ.div(1, 2);
     }).toThrow();
 
     expect(() => {
-        GBI.div(GBI(1), GBI(2));
+        MPZ.div(MPZ(1), MPZ(2));
     }).toThrow();
 
     expect(() => {
-        GBI.div(GBI(1));
+        MPZ.div(MPZ(1));
     }).toThrow();
 
     expect(
-        GBI(
+        MPZ(
             '433593290010590489671135819286259593426549306666324008679782084292'
             + '2446494189019075159822930571858728009485237489829138626896756141'
             + '8738958337632249177044975686477011571044266'

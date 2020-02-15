@@ -1,9 +1,9 @@
-const GBI = require('../');
+const {MPZ} = require('../');
 
 test('primes', () => {
     const ps = { 2: true, 3: true, 5: true, 7: true };
     for (let i = 0; i <= 10; i++) {
-        expect(GBI(i).probPrime()).toEqual(!!ps[i]);
+        expect(MPZ(i).probPrime()).toEqual(!!ps[i]);
     }
 
     const ns = {
@@ -18,7 +18,7 @@ test('primes', () => {
     };
 
     Object.keys(ns).forEach(n => {
-        expect(GBI(n).nextPrime().toString()).toEqual(ns[n].toString());
+        expect(MPZ(n).nextPrime().toString()).toEqual(ns[n].toString());
     });
 
     const uniques = [
@@ -45,7 +45,7 @@ test('primes', () => {
 
     [ uniques, wagstaff, big ].forEach(xs => {
         xs.forEach(x => {
-            const p = GBI(x).probPrime();
+            const p = MPZ(x).probPrime();
             expect(p === true || p === 'maybe').toBe(true);
         });
     });

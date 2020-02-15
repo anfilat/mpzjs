@@ -1,4 +1,4 @@
-bigint
+gmpjs
 ======
 
 Arbitrary precision integral arithmetic for node.js!
@@ -20,17 +20,17 @@ example
 simple.js
 ---------
 
-    const GBI = require('bigint');
+    const {MPZ} = require('bigint');
     
-    const b = GBI('782910138827292261791972728324982')
+    const b = MPZ('782910138827292261791972728324982')
         .sub('182373273283402171237474774728373')
         .div(8)
     ;
-    console.log(b);
+    console.log(b.toString());
 
 ***
     $ node simple.js
-    <BigInt 75067108192986261319312244199576>
+    <MPZ 75067108192986261319312244199576>
 
 perfect.js
 ----------
@@ -38,12 +38,12 @@ perfect.js
 Generate the perfect numbers:
 
     // If 2**n-1 is prime, then (2**n-1) * 2**(n-1) is perfect.
-    const GBI = require('bigint');
+    const {MPZ} = require('bigint');
 
     for (let n = 0; n < 100; n++) {
-        const p = GBI.pow(2, n).sub(1);
+        const p = MPZ.pow(2, n).sub(1);
         if (p.probPrime(50)) {
-            const perfect = p.mul(GBI.pow(2, n - 1));
+            const perfect = p.mul(MPZ.pow(2, n - 1));
             console.log(perfect.toString());
         }
     }

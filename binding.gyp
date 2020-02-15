@@ -1,8 +1,8 @@
 {
   'targets': [
     {
-      'target_name': 'gmpbigint',
-      'sources': [ 'src/gmpbigint.cc' ],
+      'target_name': 'gmpjs',
+      'sources': [ 'src/gmpjs.cc' ],
       'include_dirs': [
         "<!(node -e \"require('nan')\")"
       ],

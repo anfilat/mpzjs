@@ -1,9 +1,9 @@
-const GBI = require('../');
+const {MPZ} = require('../');
 const put = require('put');
 
 test('buf be', () => {
     const buf1 = Buffer.from([1, 2, 3, 4]);
-    const num = GBI
+    const num = MPZ
         .fromBuffer(buf1, { size : 4 })
         .toNumber();
     expect(num).toEqual(
@@ -19,7 +19,7 @@ test('buf be', () => {
 
 test('buf le', () => {
     const buf1 = Buffer.from([1, 2, 3, 4]);
-    const num = GBI
+    const num = MPZ
         .fromBuffer(buf1, { size : 4, endian : 'little' })
         .toNumber();
     const buf2 = put().word32le(num).buffer();
@@ -30,10 +30,10 @@ test('buf be le', () => {
     const buf_be = Buffer.from([1, 2, 3, 4, 5, 6, 7, 8]);
     const buf_le = Buffer.from([4, 3, 2, 1, 8, 7, 6, 5]);
 
-    const num_be = GBI
+    const num_be = MPZ
         .fromBuffer(buf_be, { size : 4, endian : 'big' })
         .toString();
-    const num_le = GBI
+    const num_le = MPZ
         .fromBuffer(buf_le, { size : 4, endian : 'little' })
         .toString();
 
@@ -50,10 +50,10 @@ test('buf high bits', () => {
         208, 207, 206, 205
     ]);
 
-    const num_be = GBI
+    const num_be = MPZ
         .fromBuffer(buf_be, { size : 4, endian : 'big' })
         .toString();
-    const num_le = GBI
+    const num_le = MPZ
         .fromBuffer(buf_le, { size : 4, endian : 'little' })
         .toString();
 
@@ -71,21 +71,21 @@ test('buf to from', () => {
     ];
 
     nums.forEach(num => {
-        const b = GBI(num);
+        const b = MPZ(num);
         const u = b.toBuffer();
 
         expect(u).toBeTruthy();
-        expect(GBI.fromBuffer(u).toString()).toBe(b.toString());
+        expect(MPZ.fromBuffer(u).toString()).toBe(b.toString());
     });
 
     expect(() => {
-        GBI(-1).toBuffer()
+        MPZ(-1).toBuffer()
     }).toThrow();
 });
 
 test('toBuf', () => {
     const buf = Buffer.from([ 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f ]);
-    const b = GBI(
+    const b = MPZ(
           0x0a * 256*256*256*256*256
         + 0x0b * 256*256*256*256
         + 0x0c * 256*256*256
@@ -102,20 +102,20 @@ test('toBuf', () => {
     expect([].slice.call(b.toBuffer({ endian : 'little', size : 2 })))
         .toEqual([ 0x0b, 0x0a, 0x0d, 0x0c, 0x0f, 0x0e ]);
 
-    expect(GBI.fromBuffer(buf).toString(16))
+    expect(MPZ.fromBuffer(buf).toString(16))
         .toEqual(b.toString(16));
 
-    expect([].slice.call(GBI(43135012110)
+    expect([].slice.call(MPZ(43135012110)
         .toBuffer({ endian : 'little', size : 4 }))
     ).toEqual([ 0x0a, 0x00, 0x00, 0x00, 0x0e, 0x0d, 0x0c, 0x0b ]);
 
-    expect([].slice.call(GBI(43135012110)
+    expect([].slice.call(MPZ(43135012110)
         .toBuffer({ endian : 'big', size : 4 }))
     ).toEqual([ 0x00, 0x00, 0x00, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e ]);
 });
 
 test('zero pad', () => {
-    const b = GBI(0x123456);
+    const b = MPZ(0x123456);
 
     expect([].slice.call(b.toBuffer({ endian : 'big', size:4 })))
         .toEqual([ 0x00, 0x12, 0x34, 0x56 ]);
@@ -143,7 +143,7 @@ test('to mpint', () => {
     };
 
     Object.keys(refs).forEach(key => {
-        const buf0 = GBI(key, 16).toBuffer('mpint');
+        const buf0 = MPZ(key, 16).toBuffer('mpint');
         const buf1 = refs[key];
 
         expect(buf0).toEqual(buf1);

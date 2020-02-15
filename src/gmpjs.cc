@@ -71,19 +71,19 @@ using namespace std;
   Local<Value> VAR = Nan::New<Function>(constructor_template)->      \
     NewInstance(CONTEXT, 1, arg).ToLocalChecked();
 
-class GmpBigInt : public Nan::ObjectWrap {
+class GmpJS : public Nan::ObjectWrap {
   public:
     static void Initialize(Local<Object> target);
-    mpz_t *bigint_;
+    mpz_t *value;
 
   protected:
     static Nan::Persistent<Function> constructor_template;
 
-    GmpBigInt(const String::Utf8Value& str, int64_t base);
-    GmpBigInt(double num);
-    GmpBigInt(mpz_t *num);
-    GmpBigInt();
-    ~GmpBigInt();
+    GmpJS(const String::Utf8Value& str, int64_t base);
+    GmpJS(double num);
+    GmpJS(mpz_t *num);
+    GmpJS();
+    ~GmpJS();
 
     static NAN_METHOD(New);
     static NAN_METHOD(ToString);
@@ -123,14 +123,14 @@ class GmpBigInt : public Nan::ObjectWrap {
 
 static gmp_randstate_t *randstate = NULL;
 
-Nan::Persistent<Function> GmpBigInt::constructor_template;
+Nan::Persistent<Function> GmpJS::constructor_template;
 
-void GmpBigInt::Initialize(Local<Object> target) {
+void GmpJS::Initialize(Local<Object> target) {
   Local<Context> context = target->CreationContext();
   Nan::HandleScope scope;
 
   Local<FunctionTemplate> tmpl = Nan::New<FunctionTemplate>(New);
-  tmpl->SetClassName(Nan::New("GmpBigInt").ToLocalChecked());
+  tmpl->SetClassName(Nan::New("MPZInternal").ToLocalChecked());
   tmpl->InstanceTemplate()->SetInternalFieldCount(1);
 
   Nan::SetPrototypeMethod(tmpl, "toString", ToString);
@@ -168,50 +168,50 @@ void GmpBigInt::Initialize(Local<Object> target) {
   Nan::SetPrototypeMethod(tmpl, "bgcd", Bgcd);
 
   constructor_template.Reset(tmpl->GetFunction(context).ToLocalChecked());
-  target->Set(context, Nan::New("GmpBigInt").ToLocalChecked(), tmpl->GetFunction(context).ToLocalChecked());
+  target->Set(context, Nan::New("MPZInternal").ToLocalChecked(), tmpl->GetFunction(context).ToLocalChecked());
 }
 
-GmpBigInt::GmpBigInt (const v8::String::Utf8Value& str, int64_t base) : Nan::ObjectWrap () {
-  bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
+GmpJS::GmpJS (const v8::String::Utf8Value& str, int64_t base) : Nan::ObjectWrap () {
+  value = (mpz_t *) malloc(sizeof(mpz_t));
 
-  mpz_init_set_str(*bigint_, *str, base);
+  mpz_init_set_str(*value, *str, base);
 }
 
-GmpBigInt::GmpBigInt (double num) : Nan::ObjectWrap () {
-  bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
+GmpJS::GmpJS (double num) : Nan::ObjectWrap () {
+  value = (mpz_t *) malloc(sizeof(mpz_t));
 
-  mpz_init_set_d(*bigint_, num);
+  mpz_init_set_d(*value, num);
 }
 
-GmpBigInt::GmpBigInt (mpz_t *num) : Nan::ObjectWrap () {
-  bigint_ = num;
+GmpJS::GmpJS (mpz_t *num) : Nan::ObjectWrap () {
+  value = num;
 }
 
-GmpBigInt::GmpBigInt () : Nan::ObjectWrap () {
-  bigint_ = (mpz_t *) malloc(sizeof(mpz_t));
+GmpJS::GmpJS () : Nan::ObjectWrap () {
+  value = (mpz_t *) malloc(sizeof(mpz_t));
 
-  mpz_init(*bigint_);
+  mpz_init(*value);
 }
 
-GmpBigInt::~GmpBigInt () {
-  mpz_clear(*bigint_);
-  free(bigint_);
+GmpJS::~GmpJS () {
+  mpz_clear(*value);
+  free(value);
 }
 
-NAN_METHOD(GmpBigInt::New) {
+NAN_METHOD(GmpJS::New) {
   Nan::HandleScope scope;
-  GmpBigInt *bigint;
+  GmpJS *self;
 
   if (info.Length() == 0) {
-    bigint = new GmpBigInt();
+    self = new GmpJS();
   } else if (info[0]->IsExternal()) {
     mpz_t *num = static_cast<mpz_t *>(External::Cast(*(info[0]))->Value());
 
-    bigint = new GmpBigInt(num);
+    self = new GmpJS(num);
   } else if (info[0]->IsNumber()) {
     double num = Nan::To<double>(info[0]).FromJust();
 
-    bigint = new GmpBigInt(num);
+    self = new GmpJS(num);
   } else {
     Local<Context> context = info.GetIsolate()->GetCurrentContext();
     Isolate* isolate = context->GetIsolate();
@@ -219,16 +219,16 @@ NAN_METHOD(GmpBigInt::New) {
     String::Utf8Value str(isolate, info[0]->ToString(context).ToLocalChecked());
     int64_t base = Nan::To<int64_t>(info[1]).FromJust();
 
-    bigint = new GmpBigInt(str, base);
+    self = new GmpJS(str, base);
   }
 
-  bigint->Wrap(info.This());
+  self->Wrap(info.This());
 
   info.GetReturnValue().Set(info.This());
 }
 
-NAN_METHOD(GmpBigInt::ToString) {
-  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+NAN_METHOD(GmpJS::ToString) {
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   uint64_t base = 10;
   if (info.Length() > 0) {
@@ -236,21 +236,21 @@ NAN_METHOD(GmpBigInt::ToString) {
     base = tbase;
   }
 
-  char *to = mpz_get_str(0, base, *self->bigint_);
+  char *to = mpz_get_str(0, base, *self->value);
 
   info.GetReturnValue().Set(Nan::New<String>(to).ToLocalChecked());
   free(to);
 }
 
-NAN_METHOD(GmpBigInt::ToNumber) {
-  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+NAN_METHOD(GmpJS::ToNumber) {
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
-  info.GetReturnValue().Set(Nan::New<Number>(mpz_get_d(*self->bigint_)));
+  info.GetReturnValue().Set(Nan::New<Number>(mpz_get_d(*self->value)));
 }
 
-NAN_METHOD(GmpBigInt::Add) {
+NAN_METHOD(GmpJS::Add) {
   auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
@@ -258,40 +258,40 @@ NAN_METHOD(GmpBigInt::Add) {
   if (info[0]->IsNumber()) {
     auto num = Nan::To<int64_t>(info[0]).FromJust();
     if (num >= 0) {
-      mpz_add_ui(*res, *self->bigint_, num);
+      mpz_add_ui(*res, *self->value, num);
     } else {
-      mpz_sub_ui(*res, *self->bigint_, -num);
+      mpz_sub_ui(*res, *self->value, -num);
     }
   } else {
-    auto *num = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_add(*res, *self->bigint_, *num->bigint_);
+    auto *num = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+    mpz_add(*res, *self->value, *num->value);
   }
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::AssignAdd) {
+NAN_METHOD(GmpJS::AssignAdd) {
   auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
 
   if (info[1]->IsNumber()) {
     auto num2 = Nan::To<int64_t>(info[1]).FromJust();
     if (num2 >= 0) {
-      mpz_add_ui(*self->bigint_, *num1->bigint_, num2);
+      mpz_add_ui(*self->value, *num1->value, num2);
     } else {
-      mpz_sub_ui(*self->bigint_, *num1->bigint_, -num2);
+      mpz_sub_ui(*self->value, *num1->value, -num2);
     }
   } else {
-    auto *num2 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[1]->ToObject(context).ToLocalChecked());
-    mpz_add(*self->bigint_, *num1->bigint_, *num2->bigint_);
+    auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
+    mpz_add(*self->value, *num1->value, *num2->value);
   }
 }
 
-NAN_METHOD(GmpBigInt::Sub) {
+NAN_METHOD(GmpJS::Sub) {
   auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
@@ -299,225 +299,225 @@ NAN_METHOD(GmpBigInt::Sub) {
   if (info[0]->IsNumber()) {
     auto num = Nan::To<int64_t>(info[0]).FromJust();
     if (num >= 0) {
-      mpz_sub_ui(*res, *self->bigint_, num);
+      mpz_sub_ui(*res, *self->value, num);
     } else {
-      mpz_add_ui(*res, *self->bigint_, -num);
+      mpz_add_ui(*res, *self->value, -num);
     }
   } else {
-    auto *num = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_sub(*res, *self->bigint_, *num->bigint_);
+    auto *num = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+    mpz_sub(*res, *self->value, *num->value);
   }
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::AssignSub) {
+NAN_METHOD(GmpJS::AssignSub) {
   auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
 
   if (info[1]->IsNumber()) {
     auto num2 = Nan::To<int64_t>(info[1]).FromJust();
     if (num2 >= 0) {
-      mpz_sub_ui(*self->bigint_, *num1->bigint_, num2);
+      mpz_sub_ui(*self->value, *num1->value, num2);
     } else {
-      mpz_add_ui(*self->bigint_, *num1->bigint_, -num2);
+      mpz_add_ui(*self->value, *num1->value, -num2);
     }
   } else {
-    auto *num2 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[1]->ToObject(context).ToLocalChecked());
-    mpz_sub(*self->bigint_, *num1->bigint_, *num2->bigint_);
+    auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
+    mpz_sub(*self->value, *num1->value, *num2->value);
   }
 }
 
-NAN_METHOD(GmpBigInt::Mul) {
+NAN_METHOD(GmpJS::Mul) {
   auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
 
   if (info[0]->IsNumber()) {
     auto num = Nan::To<int64_t>(info[0]).FromJust();
-    mpz_mul_ui(*res, *self->bigint_, num);
+    mpz_mul_ui(*res, *self->value, num);
   } else {
-    auto *num = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_mul(*res, *self->bigint_, *num->bigint_);
+    auto *num = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+    mpz_mul(*res, *self->value, *num->value);
   }
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::AssignMul) {
+NAN_METHOD(GmpJS::AssignMul) {
   auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
 
   if (info[1]->IsNumber()) {
     auto num2 = Nan::To<int64_t>(info[1]).FromJust();
-    mpz_mul_ui(*self->bigint_, *num1->bigint_, num2);
+    mpz_mul_ui(*self->value, *num1->value, num2);
   } else {
-    auto *num2 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[1]->ToObject(context).ToLocalChecked());
-    mpz_mul(*self->bigint_, *num1->bigint_, *num2->bigint_);
+    auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
+    mpz_mul(*self->value, *num1->value, *num2->value);
   }
 }
 
-NAN_METHOD(GmpBigInt::Div) {
+NAN_METHOD(GmpJS::Div) {
   auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
 
   if (info[0]->IsNumber()) {
     auto num = Nan::To<int64_t>(info[0]).FromJust();
-    mpz_div_ui(*res, *self->bigint_, num);
+    mpz_div_ui(*res, *self->value, num);
   } else {
-    auto *num = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_div(*res, *self->bigint_, *num->bigint_);
+    auto *num = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+    mpz_div(*res, *self->value, *num->value);
   }
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::AssignDiv) {
+NAN_METHOD(GmpJS::AssignDiv) {
   auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
 
   if (info[1]->IsNumber()) {
     auto num2 = Nan::To<int64_t>(info[1]).FromJust();
-    mpz_div_ui(*self->bigint_, *num1->bigint_, num2);
+    mpz_div_ui(*self->value, *num1->value, num2);
   } else {
-    auto *num2 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[1]->ToObject(context).ToLocalChecked());
-    mpz_div(*self->bigint_, *num1->bigint_, *num2->bigint_);
+    auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
+    mpz_div(*self->value, *num1->value, *num2->value);
   }
 }
 
-NAN_METHOD(GmpBigInt::Umul_2exp) {
+NAN_METHOD(GmpJS::Umul_2exp) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
   Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_mul_2exp(*res, *bigint->bigint_, x);
+  mpz_mul_2exp(*res, *bigint->value, x);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Udiv_2exp) {
+NAN_METHOD(GmpJS::Udiv_2exp) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
   Nan::HandleScope scope;
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_div_2exp(*res, *bigint->bigint_, x);
+  mpz_div_2exp(*res, *bigint->value, x);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Babs) {
+NAN_METHOD(GmpJS::Babs) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_abs(*res, *bigint->bigint_);
+  mpz_abs(*res, *bigint->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Bneg) {
+NAN_METHOD(GmpJS::Bneg) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_neg(*res, *bigint->bigint_);
+  mpz_neg(*res, *bigint->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Bmod) {
+NAN_METHOD(GmpJS::Bmod) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_mod(*res, *bigint->bigint_, *bi->bigint_);
+  mpz_mod(*res, *bigint->value, *bi->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Umod) {
+NAN_METHOD(GmpJS::Umod) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_mod_ui(*res, *bigint->bigint_, x);
+  mpz_mod_ui(*res, *bigint->value, x);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Bpowm) {
+NAN_METHOD(GmpJS::Bpowm) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
-  GmpBigInt *bi1 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
-  GmpBigInt *bi2 = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[1]->ToObject(context).ToLocalChecked());
+  GmpJS *bi1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+  GmpJS *bi2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_powm(*res, *bigint->bigint_, *bi1->bigint_, *bi2->bigint_);
+  mpz_powm(*res, *bigint->value, *bi1->value, *bi2->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Upowm) {
+NAN_METHOD(GmpJS::Upowm) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   REQ_UINT64_ARG(0, x);
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[1]->ToObject(context).ToLocalChecked());
+  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_powm_ui(*res, *bigint->bigint_, x, *bi->bigint_);
+  mpz_powm_ui(*res, *bigint->value, x, *bi->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Upow) {
+NAN_METHOD(GmpJS::Upow) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_pow_ui(*res, *bigint->bigint_, x);
+  mpz_pow_ui(*res, *bigint->value, x);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Brand0) {
+NAN_METHOD(GmpJS::Brand0) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
@@ -529,146 +529,146 @@ NAN_METHOD(GmpBigInt::Brand0) {
           gmp_randseed_ui(*randstate, seed);
   }
 
-  mpz_urandomm(*res, *randstate, *bigint->bigint_);
+  mpz_urandomm(*res, *randstate, *bigint->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Probprime) {
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+NAN_METHOD(GmpJS::Probprime) {
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   REQ_UINT32_ARG(0, reps);
-  info.GetReturnValue().Set(Nan::New<Number>(mpz_probab_prime_p(*bigint->bigint_, reps)));
+  info.GetReturnValue().Set(Nan::New<Number>(mpz_probab_prime_p(*bigint->value, reps)));
 }
 
-NAN_METHOD(GmpBigInt::Nextprime) {
+NAN_METHOD(GmpJS::Nextprime) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_nextprime(*res, *bigint->bigint_);
+  mpz_nextprime(*res, *bigint->value);
 
   WRAP_RESULT(context, res, result);
 
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Bcompare) {
+NAN_METHOD(GmpJS::Bcompare) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
 
-  info.GetReturnValue().Set(Nan::New<Number>(mpz_cmp(*bigint->bigint_, *bi->bigint_)));
+  info.GetReturnValue().Set(Nan::New<Number>(mpz_cmp(*bigint->value, *bi->value)));
 }
 
-NAN_METHOD(GmpBigInt::Scompare) {
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+NAN_METHOD(GmpJS::Scompare) {
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
   REQ_INT64_ARG(0, x);
 
-  info.GetReturnValue().Set(Nan::New<Number>(mpz_cmp_si(*bigint->bigint_, x)));
+  info.GetReturnValue().Set(Nan::New<Number>(mpz_cmp_si(*bigint->value, x)));
 }
 
-NAN_METHOD(GmpBigInt::Ucompare) {
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+NAN_METHOD(GmpJS::Ucompare) {
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
   REQ_UINT64_ARG(0, x);
 
-  info.GetReturnValue().Set(Nan::New<Number>(mpz_cmp_ui(*bigint->bigint_, x)));
+  info.GetReturnValue().Set(Nan::New<Number>(mpz_cmp_ui(*bigint->value, x)));
 }
 
-NAN_METHOD(GmpBigInt::Band) {
+NAN_METHOD(GmpJS::Band) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_and(*res, *bigint->bigint_, *bi->bigint_);
+  mpz_and(*res, *bigint->value, *bi->value);
 
   WRAP_RESULT(context, res, result);
 
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Bor) {
+NAN_METHOD(GmpJS::Bor) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_ior(*res, *bigint->bigint_, *bi->bigint_);
+  mpz_ior(*res, *bigint->value, *bi->value);
 
   WRAP_RESULT(context, res, result);
 
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Bxor) {
+NAN_METHOD(GmpJS::Bxor) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_xor(*res, *bigint->bigint_, *bi->bigint_);
+  mpz_xor(*res, *bigint->value, *bi->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Binvertm) {
+NAN_METHOD(GmpJS::Binvertm) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_invert(*res, *bigint->bigint_, *bi->bigint_);
+  mpz_invert(*res, *bigint->value, *bi->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Bsqrt) {
+NAN_METHOD(GmpJS::Bsqrt) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_sqrt(*res, *bigint->bigint_);
+  mpz_sqrt(*res, *bigint->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Broot) {
+NAN_METHOD(GmpJS::Broot) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   REQ_UINT64_ARG(0, x);
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_root(*res, *bigint->bigint_, x);
+  mpz_root(*res, *bigint->value, x);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::BitLength) {
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  int size = mpz_sizeinbase(*bigint->bigint_, 2);
+NAN_METHOD(GmpJS::BitLength) {
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  int size = mpz_sizeinbase(*bigint->value, 2);
   Local<Value> result = Nan::New<Integer>(size);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpBigInt::Bgcd) {
+NAN_METHOD(GmpJS::Bgcd) {
   Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpBigInt *bigint = Nan::ObjectWrap::Unwrap<GmpBigInt>(info.This());
-  GmpBigInt *bi = Nan::ObjectWrap::Unwrap<GmpBigInt>(info[0]->ToObject(context).ToLocalChecked());
+  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_gcd(*res, *bigint->bigint_, *bi->bigint_);
+  mpz_gcd(*res, *bigint->value, *bi->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
@@ -676,7 +676,7 @@ NAN_METHOD(GmpBigInt::Bgcd) {
 
 extern "C" void
 init (Local<Object> target) {
-  GmpBigInt::Initialize(target);
+  GmpJS::Initialize(target);
 }
 
-NODE_MODULE(gmpbigint, init);
+NODE_MODULE(gmpjs, init);

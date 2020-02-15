@@ -1,5 +1,5 @@
 {
-  "name": "bigint",
+  "name": "gmpjs",
   "version": "0.4.2",
   "description": "Arbitrary-precision integer arithmetic using libgmp",
   "main": "./lib/index.js",

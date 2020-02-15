@@ -1,39 +1,39 @@
-const GBI = require('../');
+const {MPZ} = require('../');
 
 test('sub', () => {
     for (let i = -10; i < 10; i++) {
         for (let j = -10; j < 10; j++) {
             const js = j.toString();
             const ks = (i - j).toString();
-            const result = GBI();
+            const result = MPZ();
 
-            expect(GBI(i).sub(j).toString()).toEqual(ks);
-            expect(GBI(i).sub(js).toString()).toEqual(ks);
-            expect(GBI(i).sub(GBI(j)).toString()).toEqual(ks);
+            expect(MPZ(i).sub(j).toString()).toEqual(ks);
+            expect(MPZ(i).sub(js).toString()).toEqual(ks);
+            expect(MPZ(i).sub(MPZ(j)).toString()).toEqual(ks);
 
-            GBI.sub(result, i, j);
+            MPZ.sub(result, i, j);
             expect(result.toString()).toEqual(ks);
-            GBI.sub(result, i, js);
+            MPZ.sub(result, i, js);
             expect(result.toString()).toEqual(ks);
-            GBI.sub(result, GBI(i), GBI(j));
+            MPZ.sub(result, MPZ(i), MPZ(j));
             expect(result.toString()).toEqual(ks);
         }
     }
 
     expect(() => {
-        GBI.sub(1, 2);
+        MPZ.sub(1, 2);
     }).toThrow();
 
     expect(() => {
-        GBI.sub(GBI(1), GBI(2));
+        MPZ.sub(MPZ(1), MPZ(2));
     }).toThrow();
 
     expect(() => {
-        GBI.sub(GBI(1));
+        MPZ.sub(MPZ(1));
     }).toThrow();
 
     expect(
-        GBI(
+        MPZ(
             '635849762218952604062459342660379446997761295162166888134051068531'
             + '9813941775949841573516110003093332652267534768664621969514455380'
             + '8051168706779408804756208386011014197185296'

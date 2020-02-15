@@ -1,11 +1,11 @@
-const GBI = require('../');
+const {MPZ} = require('../');
 
 test('cmp', () => {
     for (let i = -10; i <= 10; i++) {
-        const bi = GBI(i);
+        const bi = MPZ(i);
 
         for (let j = -10; j <= 10; j++) {
-            [ j, GBI(j) ].forEach(jj => {
+            [ j, MPZ(j) ].forEach(jj => {
                 expect(bi.lt(jj)).toEqual(i < j);
                 expect(bi.le(jj)).toEqual(i <= j);
                 expect(bi.eq(jj)).toEqual(i === j);
