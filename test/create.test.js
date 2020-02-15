@@ -20,8 +20,9 @@ test('create', () => {
     expect(MPZ(-0.6).toNumber()).toEqual(0);
     expect(MPZ('-6e-1').toNumber()).toEqual(0);
 
-    expect(MPZ(MPZ('43856439285743298057234')).toString()).toBe('43856439285743298057234');
-    expect(MPZ(BigInt('43856439285743298057234')).toString()).toBe('43856439285743298057234');
+    expect(MPZ('43856439285743298057234').valueOf()).toBe(43856439285743298057234n);
+    expect(MPZ(43856439285743298057234n).valueOf()).toBe(43856439285743298057234n);
+    expect(MPZ(MPZ('43856439285743298057234')).valueOf()).toBe(43856439285743298057234n);
 
     for (let i = 0; i < 10; i++) {
         expect(MPZ('1.23456e+' + i).toNumber()).toEqual(Math.floor(1.23456 * Math.pow(10, i)));

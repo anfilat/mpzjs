@@ -20,13 +20,12 @@ example
 simple.js
 ---------
 
-    const {MPZ} = require('bigint');
+    const {MPZ} = require('gmpjs');
     
     const b = MPZ('782910138827292261791972728324982')
         .sub('182373273283402171237474774728373')
-        .div(8)
-    ;
-    console.log(b.toString());
+        .div(8);
+    console.log(b);
 
 ***
     $ node simple.js
@@ -38,7 +37,7 @@ perfect.js
 Generate the perfect numbers:
 
     // If 2**n-1 is prime, then (2**n-1) * 2**(n-1) is perfect.
-    const {MPZ} = require('bigint');
+    const {MPZ} = require('gmpjs');
 
     for (let n = 0; n < 100; n++) {
         const p = MPZ.pow(2, n).sub(1);
