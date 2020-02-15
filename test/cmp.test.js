@@ -1,18 +1,18 @@
 const {MPZ} = require('../');
 
 test('cmp', () => {
-    for (let i = -10; i <= 10; i++) {
+    [-100, -10, -5, -1, 0, 1, 5, 10, 100].forEach(i => {
         const bi = MPZ(i);
 
-        for (let j = -10; j <= 10; j++) {
-            [ j, MPZ(j) ].forEach(jj => {
-                expect(bi.lt(jj)).toEqual(i < j);
-                expect(bi.le(jj)).toEqual(i <= j);
-                expect(bi.eq(jj)).toEqual(i === j);
-                expect(bi.ne(jj)).toEqual(i !== j);
-                expect(bi.gt(jj)).toEqual(i > j);
-                expect(bi.ge(jj)).toEqual(i >= j);
+        [-100, -10, -5, -1, 0, 1, 5, 10, 100].forEach(j => {
+            [ j, j.toString(), MPZ(j), BigInt(j) ].forEach(jj => {
+                expect(bi.lt(jj)).toBe(i < j);
+                expect(bi.le(jj)).toBe(i <= j);
+                expect(bi.eq(jj)).toBe(i === j);
+                expect(bi.ne(jj)).toBe(i !== j);
+                expect(bi.gt(jj)).toBe(i > j);
+                expect(bi.ge(jj)).toBe(i >= j);
             });
-        }
-    }
+        });
+    });
 });

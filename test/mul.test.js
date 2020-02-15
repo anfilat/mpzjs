@@ -1,36 +1,25 @@
 const {MPZ} = require('../');
 
 test('mul', () => {
-    for (let i = -10; i < 10; i++) {
-        for (let j = -10; j < 10; j++) {
+    [-100, -10, -5, -1, 0, 1, 5, 10, 100].forEach(i => {
+        [-100, -10, -5, -1, 0, 1, 5, 10, 100].forEach(j => {
             const js = j.toString();
             const ks = (i * j).toString();
             const result = MPZ();
 
-            expect(MPZ(i).mul(j).toString()).toEqual(ks);
-            expect(MPZ(i).mul(js).toString()).toEqual(ks);
-            expect(MPZ(i).mul(MPZ(j)).toString()).toEqual(ks);
+            expect(MPZ(i).mul(j).toString()).toBe(ks);
+            expect(MPZ(i).mul(js).toString()).toBe(ks);
+            expect(MPZ(i).mul(MPZ(j)).toString()).toBe(ks);
+            expect(MPZ(i).mul(BigInt(j)).toString()).toBe(ks);
 
             MPZ.mul(result, i, j);
-            expect(result.toString()).toEqual(ks);
+            expect(result.toString()).toBe(ks);
             MPZ.mul(result, i, js);
-            expect(result.toString()).toEqual(ks);
+            expect(result.toString()).toBe(ks);
             MPZ.mul(result, MPZ(i), MPZ(j));
-            expect(result.toString()).toEqual(ks);
-        }
-    }
-
-    expect(() => {
-        MPZ.mul(1, 2);
-    }).toThrow();
-
-    expect(() => {
-        MPZ.mul(MPZ(1), MPZ(2));
-    }).toThrow();
-
-    expect(() => {
-        MPZ.mul(MPZ(1));
-    }).toThrow();
+            expect(result.toString()).toBe(ks);
+        });
+    });
 
     expect(
         MPZ(
@@ -42,7 +31,7 @@ test('mul', () => {
             + '3886212911067061184379695097643279217271150419129022856601771338'
             + '794256383410400076210073482253089544155377'
         ).toString()
-    ).toEqual(
+    ).toBe(
         '5540900136412485758752141142221047463857522755277604708501015732755989'
         + '17659432099233635577634197309727815375309484297883528869192732141328'
         + '99346769031695550850320602049507618052164677667378189154076988316301'
@@ -52,5 +41,19 @@ test('mul', () => {
     );
 
     expect(MPZ('10000000000000000000000000000').mul(-123).toString())
-        .toEqual('-1230000000000000000000000000000');
+        .toBe('-1230000000000000000000000000000');
+});
+
+test('mul exceptions', () => {
+    expect(() => {
+        MPZ.mul(1, 2);
+    }).toThrow();
+
+    expect(() => {
+        MPZ.mul(MPZ(1), MPZ(2));
+    }).toThrow();
+
+    expect(() => {
+        MPZ.mul(MPZ(1));
+    }).toThrow();
 });
