@@ -1,13 +1,5 @@
-# Files
-.lock-wscript
-
-# Filetypes
-.*.swp
-
-# Paths
 /build
-
 .idea
 .nyc_output
-package-lock.json
 node_modules
+package-lock.json

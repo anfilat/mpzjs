@@ -3,6 +3,10 @@
   "version": "0.4.2",
   "description": "Arbitrary-precision integer arithmetic using libgmp",
   "main": "./index.js",
+  "engines": {
+    "node": ">=12.0"
+  },
+  "license": "MIT/X11",
   "repository": {
     "type": "git",
     "url": "http://github.com/substack/node-bigint.git"
@@ -22,6 +26,10 @@
     "email": "mail@substack.net",
     "url": "http://substack.net"
   },
+  "scripts": {
+    "install": "node-gyp configure build",
+    "test": "jest"
+  },
   "dependencies": {
     "bindings": "^1.5.0",
     "nan": "^2.14.0"
@@ -29,13 +37,5 @@
   "devDependencies": {
     "jest": "^25.1.0",
     "put": "~0.0.6"
-  },
-  "license": "MIT/X11",
-  "engines": {
-    "node": ">=12.0"
-  },
-  "scripts": {
-    "install": "node-gyp configure build",
-    "test": "jest"
   }
 }
