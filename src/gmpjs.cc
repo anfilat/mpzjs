@@ -75,6 +75,8 @@ class GmpJS : public Nan::ObjectWrap {
     static NAN_METHOD(AssignOr);
     static NAN_METHOD(Xor);
     static NAN_METHOD(AssignXor);
+    static NAN_METHOD(Not);
+    static NAN_METHOD(AssignNot);
     static NAN_METHOD(ShiftLeft);
     static NAN_METHOD(AssignShiftLeft);
     static NAN_METHOD(ShiftRight);
@@ -131,6 +133,8 @@ void GmpJS::Initialize(Local<Object> target) {
   Nan::SetPrototypeMethod(tmpl, "assignOr", AssignOr);
   Nan::SetPrototypeMethod(tmpl, "xor", Xor);
   Nan::SetPrototypeMethod(tmpl, "assignXor", AssignXor);
+  Nan::SetPrototypeMethod(tmpl, "not", Not);
+  Nan::SetPrototypeMethod(tmpl, "assignNot", AssignNot);
   Nan::SetPrototypeMethod(tmpl, "shiftLeft", ShiftLeft);
   Nan::SetPrototypeMethod(tmpl, "assignShiftLeft", AssignShiftLeft);
   Nan::SetPrototypeMethod(tmpl, "shiftRight", ShiftRight);
@@ -485,6 +489,27 @@ NAN_METHOD(GmpJS::AssignXor) {
   auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
 
   mpz_xor(*self->value, *num1->value, *num2->value);
+}
+
+NAN_METHOD(GmpJS::Not) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+
+  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
+  mpz_init(*res);
+
+  mpz_com(*res, *self->value);
+
+  WRAP_RESULT(context, res, result);
+  info.GetReturnValue().Set(result);
+}
+
+NAN_METHOD(GmpJS::AssignNot) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+
+  mpz_com(*self->value, *num->value);
 }
 
 NAN_METHOD(GmpJS::ShiftLeft) {
