@@ -149,3 +149,14 @@ test('to mpint', () => {
         expect(buf0).toEqual(buf1);
     });
 });
+
+test('buf exceptions', () => {
+    expect(() => {
+        const buf1 = Buffer.from([1, 2, 3, 4]);
+        MPZ.fromBuffer(buf1, { size : 8 });
+    }).toThrow();
+
+    expect(() => {
+        MPZ('80', 16).toBuffer('some');
+    }).toThrow();
+});
