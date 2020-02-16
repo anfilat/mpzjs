@@ -27,19 +27,19 @@ test('create', () => {
         .toBe('-12345678900000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000');
     expect(MPZ('1.23e+45').toNumber()).toBe(1.23e+45);
 
-    expect(MPZ(1.23e-45).toNumber()).toEqual(0);
-    expect(MPZ('1.23e-45').toNumber()).toEqual(0);
-    expect(MPZ(-1.23e-45).toNumber()).toEqual(0);
-    expect(MPZ('-1.23e-45').toNumber()).toEqual(0);
-    expect(MPZ(-0.6).toNumber()).toEqual(0);
-    expect(MPZ('-6e-1').toNumber()).toEqual(0);
+    expect(MPZ(1.23e-45).toNumber()).toBe(0);
+    expect(MPZ('1.23e-45').toNumber()).toBe(0);
+    expect(MPZ(-1.23e-45).toNumber()).toBe(0);
+    expect(MPZ('-1.23e-45').toNumber()).toBe(0);
+    expect(MPZ(-0.6).toNumber()).toBe(0);
+    expect(MPZ('-6e-1').toNumber()).toBe(0);
 
     expect(MPZ('43856439285743298057234').valueOf()).toBe(43856439285743298057234n);
     expect(MPZ(43856439285743298057234n).valueOf()).toBe(43856439285743298057234n);
     expect(MPZ(MPZ('43856439285743298057234')).valueOf()).toBe(43856439285743298057234n);
 
     for (let i = 0; i < 10; i++) {
-        expect(MPZ('1.23456e+' + i).toNumber()).toEqual(Math.floor(1.23456 * Math.pow(10, i)));
+        expect(MPZ('1.23456e+' + i).toNumber()).toBe(Math.floor(1.23456 * Math.pow(10, i)));
     }
 
     expect(MPZ().toNumber()).toBe(0);

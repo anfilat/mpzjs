@@ -16,13 +16,6 @@ using namespace v8;
 using namespace node;
 using namespace std;
 
-#define REQ_UINT32_ARG(I, VAR)                                \
-  if (info.Length() <= (I) || !info[I]->IsUint32()) {         \
-    Nan::ThrowTypeError("Argument " #I " must be a uint32");    \
-    return;                                     \
-  }                                                           \
-  uint32_t VAR = Nan::To<int32_t>(info[I]).FromJust();
-
 #define REQ_UINT64_ARG(I, VAR)                                \
   if (info.Length() <= (I) || !info[I]->IsNumber()) {         \
     Nan::ThrowTypeError("Argument " #I " must be a uint64");    \
@@ -92,8 +85,9 @@ class GmpJS : public Nan::ObjectWrap {
     static NAN_METHOD(Compare);
     static NAN_METHOD(Rand);
     static NAN_METHOD(AssignRand);
-    static NAN_METHOD(Probprime);
-    static NAN_METHOD(Nextprime);
+    static NAN_METHOD(ProbPrime);
+    static NAN_METHOD(NextPrime);
+    static NAN_METHOD(AssignNextPrime);
     static NAN_METHOD(Invert);
     static NAN_METHOD(AssignInvert);
     static NAN_METHOD(Gcd);
@@ -155,8 +149,9 @@ void GmpJS::Initialize(Local<Object> target) {
   Nan::SetPrototypeMethod(tmpl, "compare", Compare);
   Nan::SetPrototypeMethod(tmpl, "rand", Rand);
   Nan::SetPrototypeMethod(tmpl, "assignRand", AssignRand);
-  Nan::SetPrototypeMethod(tmpl, "probprime", Probprime);
-  Nan::SetPrototypeMethod(tmpl, "nextprime", Nextprime);
+  Nan::SetPrototypeMethod(tmpl, "probPrime", ProbPrime);
+  Nan::SetPrototypeMethod(tmpl, "nextPrime", NextPrime);
+  Nan::SetPrototypeMethod(tmpl, "assignNextPrime", AssignNextPrime);
   Nan::SetPrototypeMethod(tmpl, "invert", Invert);
   Nan::SetPrototypeMethod(tmpl, "assignInvert", AssignInvert);
   Nan::SetPrototypeMethod(tmpl, "gcd", Gcd);
@@ -799,24 +794,32 @@ NAN_METHOD(GmpJS::AssignRand) {
   mpz_urandomm(*self->value, *randstate, *n->value);
 }
 
-NAN_METHOD(GmpJS::Probprime) {
-  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+NAN_METHOD(GmpJS::ProbPrime) {
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto reps = Nan::To<int64_t>(info[0]).FromJust();
 
-  REQ_UINT32_ARG(0, reps);
-  info.GetReturnValue().Set(Nan::New<Number>(mpz_probab_prime_p(*bigint->value, reps)));
+  info.GetReturnValue().Set(Nan::New<Number>(mpz_probab_prime_p(*self->value, reps)));
 }
 
-NAN_METHOD(GmpJS::Nextprime) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+NAN_METHOD(GmpJS::NextPrime) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_nextprime(*res, *bigint->value);
+
+  mpz_nextprime(*res, *self->value);
 
   WRAP_RESULT(context, res, result);
-
   info.GetReturnValue().Set(result);
+}
+
+NAN_METHOD(GmpJS::AssignNextPrime) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+
+  mpz_nextprime(*self->value, *num->value);
 }
 
 NAN_METHOD(GmpJS::Invert) {

@@ -3,22 +3,30 @@ const {MPZ} = require('../');
 test('primes', () => {
     const ps = { 2: true, 3: true, 5: true, 7: true };
     for (let i = 0; i <= 10; i++) {
-        expect(MPZ(i).probPrime()).toEqual(!!ps[i]);
+        expect(MPZ(i).probPrime()).toBe(!!ps[i]);
     }
 
     const ns = {
-        2: 3,
-        3: 5,
-        15313: 15319,
-        222919: 222931,
-        611939: 611951,
+        2: '3',
+        3: '5',
+        15313: '15319',
+        222919: '222931',
+        611939: '611951',
         334214459: '334214467',
         961748927: '961748941',
         9987704933: '9987704953',
     };
 
     Object.keys(ns).forEach(n => {
-        expect(MPZ(n).nextPrime().toString()).toEqual(ns[n].toString());
+        expect(MPZ(n).nextPrime().toString()).toBe(ns[n]);
+
+        const result = MPZ();
+
+        MPZ.nextPrime(result, n);
+        expect(result.toString()).toBe(ns[n]);
+
+        MPZ.nextPrime(result, MPZ(n));
+        expect(result.toString()).toBe(ns[n]);
     });
 
     const uniques = [
@@ -49,4 +57,14 @@ test('primes', () => {
             expect(p === true || p === 'maybe').toBe(true);
         });
     });
+});
+
+test('primes exceptions', () => {
+    expect(() => {
+        MPZ.nextPrime(1, 2, 3);
+    }).toThrow();
+
+    expect(() => {
+        MPZ.nextPrime(MPZ(1));
+    }).toThrow();
 });
