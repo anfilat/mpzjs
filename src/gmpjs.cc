@@ -90,11 +90,14 @@ class GmpJS : public Nan::ObjectWrap {
     static NAN_METHOD(Pow);
     static NAN_METHOD(AssignPow);
     static NAN_METHOD(Compare);
-    static NAN_METHOD(Brand0);
+    static NAN_METHOD(Rand);
+    static NAN_METHOD(AssignRand);
     static NAN_METHOD(Probprime);
     static NAN_METHOD(Nextprime);
-    static NAN_METHOD(Binvertm);
-    static NAN_METHOD(Bgcd);
+    static NAN_METHOD(Invert);
+    static NAN_METHOD(AssignInvert);
+    static NAN_METHOD(Gcd);
+    static NAN_METHOD(AssignGcd);
     static NAN_METHOD(BitLength);
 };
 
@@ -150,11 +153,14 @@ void GmpJS::Initialize(Local<Object> target) {
   Nan::SetPrototypeMethod(tmpl, "pow", Pow);
   Nan::SetPrototypeMethod(tmpl, "assignPow", AssignPow);
   Nan::SetPrototypeMethod(tmpl, "compare", Compare);
-  Nan::SetPrototypeMethod(tmpl, "brand0", Brand0);
+  Nan::SetPrototypeMethod(tmpl, "rand", Rand);
+  Nan::SetPrototypeMethod(tmpl, "assignRand", AssignRand);
   Nan::SetPrototypeMethod(tmpl, "probprime", Probprime);
   Nan::SetPrototypeMethod(tmpl, "nextprime", Nextprime);
-  Nan::SetPrototypeMethod(tmpl, "binvertm", Binvertm);
-  Nan::SetPrototypeMethod(tmpl, "bgcd", Bgcd);
+  Nan::SetPrototypeMethod(tmpl, "invert", Invert);
+  Nan::SetPrototypeMethod(tmpl, "assignInvert", AssignInvert);
+  Nan::SetPrototypeMethod(tmpl, "gcd", Gcd);
+  Nan::SetPrototypeMethod(tmpl, "assignGcd", AssignGcd);
   Nan::SetPrototypeMethod(tmpl, "bitLength", BitLength);
 
   constructor_template.Reset(tmpl->GetFunction(context).ToLocalChecked());
@@ -759,24 +765,38 @@ NAN_METHOD(GmpJS::Compare) {
   }
 }
 
-NAN_METHOD(GmpJS::Brand0) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+void initRand() {
+    randstate = (gmp_randstate_t *) malloc(sizeof(gmp_randstate_t));
+    gmp_randinit_default(*randstate);
+    unsigned long seed = rand() + (time(NULL) * 1000) + clock();
+    gmp_randseed_ui(*randstate, seed);
+}
+
+NAN_METHOD(GmpJS::Rand) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
 
-  if(randstate == NULL) {
-    randstate = (gmp_randstate_t *) malloc(sizeof(gmp_randstate_t));
-    gmp_randinit_default(*randstate);
-    unsigned long seed = rand() + (time(NULL) * 1000) + clock();
-          gmp_randseed_ui(*randstate, seed);
+  if (randstate == NULL) {
+    initRand();
   }
-
-  mpz_urandomm(*res, *randstate, *bigint->value);
+  mpz_urandomm(*res, *randstate, *self->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
+}
+
+NAN_METHOD(GmpJS::AssignRand) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *n = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+
+  if (randstate == NULL) {
+    initRand();
+  }
+  mpz_urandomm(*self->value, *randstate, *n->value);
 }
 
 NAN_METHOD(GmpJS::Probprime) {
@@ -799,29 +819,50 @@ NAN_METHOD(GmpJS::Nextprime) {
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpJS::Binvertm) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+NAN_METHOD(GmpJS::Invert) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
 
-  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_invert(*res, *bigint->value, *bi->value);
+
+  auto *num = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+  mpz_invert(*res, *self->value, *num->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
 }
 
-NAN_METHOD(GmpJS::Bgcd) {
-  Local<Context> context = info.GetIsolate()->GetCurrentContext();
-  GmpJS *bigint = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
-  GmpJS *bi = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+NAN_METHOD(GmpJS::AssignInvert) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+  auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
+
+  mpz_invert(*self->value, *num1->value, *num2->value);
+}
+
+NAN_METHOD(GmpJS::Gcd) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+
   mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
   mpz_init(*res);
-  mpz_gcd(*res, *bigint->value, *bi->value);
+
+  auto *num = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+  mpz_gcd(*res, *self->value, *num->value);
 
   WRAP_RESULT(context, res, result);
   info.GetReturnValue().Set(result);
+}
+
+NAN_METHOD(GmpJS::AssignGcd) {
+  auto context = info.GetIsolate()->GetCurrentContext();
+  auto *self = Nan::ObjectWrap::Unwrap<GmpJS>(info.This());
+  auto *num1 = Nan::ObjectWrap::Unwrap<GmpJS>(info[0]->ToObject(context).ToLocalChecked());
+  auto *num2 = Nan::ObjectWrap::Unwrap<GmpJS>(info[1]->ToObject(context).ToLocalChecked());
+
+  mpz_gcd(*self->value, *num1->value, *num2->value);
 }
 
 NAN_METHOD(GmpJS::BitLength) {
