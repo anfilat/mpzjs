@@ -15,7 +15,7 @@ jobs:
     - name: Install gmplib
       run: sudo apt install libgmp-dev
     - uses: actions/checkout@v2
-    - name: Build and test with node.js ${{ matrix.node-version }}
+    - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
