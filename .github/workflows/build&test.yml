@@ -1,4 +1,4 @@
-name: test CI
+name: build & test CI
 
 on: [push, pull_request]
 
@@ -12,6 +12,8 @@ jobs:
         node-version: [12.x, 13.x]
 
     steps:
+    - name: Install gmplib
+      run: sudo apt install libgmp-dev
     - uses: actions/checkout@v2
     - name: Build and test with node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
