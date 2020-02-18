@@ -2,7 +2,7 @@
   'targets': [
     {
       'target_name': 'gmpjs',
-      'sources': [ 'src/gmpjs.cc' ],
+      'sources': [ 'src/gmpjs.cc', 'src/mpz.cc' ],
       'include_dirs': [
         "<!(node -e \"require('nan')\")"
       ],
