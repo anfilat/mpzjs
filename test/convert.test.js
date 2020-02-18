@@ -11,6 +11,9 @@ test('convert', () => {
   expect(MPZ(42).toBigInt()).toBe(42n);
   expect(MPZ(42).valueOf()).toBe(42n);
 
+  expect(JSON.stringify(MPZ(42))).toBe('"42"');
+  expect(JSON.stringify({value: MPZ(42)})).toBe('{"value":"42"}');
+
   expect(MPZ(42) + ' == 6 * 7').toBe('42 == 6 * 7');
   expect(MPZ(42) + 42n).toBe(84n);
 
