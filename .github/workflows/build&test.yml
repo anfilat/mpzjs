@@ -9,10 +9,16 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest]
         node-version: [12.x, 13.x]
 
     steps:
+    - name: Install gmplib (Linux)
+      run: sudo apt-get install libgmp-dev
+      if: matrix.os == 'ubuntu-latest'
+    - name: Install gmplib (macOS)
+      run: brew install gmp
+      if: matrix.os == 'macos-latest'
     - uses: actions/checkout@v2
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
