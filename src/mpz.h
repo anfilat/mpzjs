@@ -11,7 +11,6 @@ class MPZ : public Nan::ObjectWrap {
   private:
     MPZ(const v8::String::Utf8Value& str, int64_t base);
     MPZ(double num);
-    MPZ(mpz_t *num);
     MPZ();
     ~MPZ();
 

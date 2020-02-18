@@ -79,10 +79,6 @@ MPZ::MPZ (double num) : Nan::ObjectWrap () {
   mpz_init_set_d(*value, num);
 }
 
-MPZ::MPZ (mpz_t *num) : Nan::ObjectWrap () {
-  value = num;
-}
-
 MPZ::MPZ () : Nan::ObjectWrap () {
   value = (mpz_t *) malloc(sizeof(mpz_t));
 
@@ -99,10 +95,6 @@ NAN_METHOD(MPZ::New) {
 
   if (info.Length() == 0) {
     self = new MPZ();
-  } else if (info[0]->IsExternal()) {
-    mpz_t *num = static_cast<mpz_t *>(v8::External::Cast(*(info[0]))->Value());
-
-    self = new MPZ(num);
   } else if (info[0]->IsNumber()) {
     auto num = Nan::To<double>(info[0]).FromJust();
 
@@ -164,23 +156,21 @@ NAN_METHOD(MPZ::Add) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   if (info[0]->IsNumber()) {
     auto num = Nan::To<int64_t>(info[0]).FromJust();
     if (num >= 0) {
-      mpz_add_ui(*res, *self->value, num);
+      mpz_add_ui(*res->value, *self->value, num);
     } else {
-      mpz_sub_ui(*res, *self->value, -num);
+      mpz_sub_ui(*res->value, *self->value, -num);
     }
   } else {
     auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_add(*res, *self->value, *num->value);
+    mpz_add(*res->value, *self->value, *num->value);
   }
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -206,23 +196,21 @@ NAN_METHOD(MPZ::Sub) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   if (info[0]->IsNumber()) {
     auto num = Nan::To<int64_t>(info[0]).FromJust();
     if (num >= 0) {
-      mpz_sub_ui(*res, *self->value, num);
+      mpz_sub_ui(*res->value, *self->value, num);
     } else {
-      mpz_add_ui(*res, *self->value, -num);
+      mpz_add_ui(*res->value, *self->value, -num);
     }
   } else {
     auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_sub(*res, *self->value, *num->value);
+    mpz_sub(*res->value, *self->value, *num->value);
   }
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -248,19 +236,17 @@ NAN_METHOD(MPZ::Mul) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   if (info[0]->IsNumber()) {
     auto num = Nan::To<int64_t>(info[0]).FromJust();
-    mpz_mul_ui(*res, *self->value, num);
+    mpz_mul_ui(*res->value, *self->value, num);
   } else {
     auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_mul(*res, *self->value, *num->value);
+    mpz_mul(*res->value, *self->value, *num->value);
   }
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -282,19 +268,17 @@ NAN_METHOD(MPZ::Div) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   if (info[0]->IsNumber()) {
     auto num = Nan::To<int64_t>(info[0]).FromJust();
-    mpz_div_ui(*res, *self->value, num);
+    mpz_div_ui(*res->value, *self->value, num);
   } else {
     auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_div(*res, *self->value, *num->value);
+    mpz_div(*res->value, *self->value, *num->value);
   }
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -316,19 +300,17 @@ NAN_METHOD(MPZ::Mod) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   if (info[0]->IsNumber()) {
     auto num = Nan::To<int64_t>(info[0]).FromJust();
-    mpz_mod_ui(*res, *self->value, num);
+    mpz_mod_ui(*res->value, *self->value, num);
   } else {
     auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_mod(*res, *self->value, *num->value);
+    mpz_mod(*res->value, *self->value, *num->value);
   }
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -378,14 +360,12 @@ NAN_METHOD(MPZ::And) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_and(*res, *self->value, *num->value);
+  mpz_and(*res->value, *self->value, *num->value);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -402,14 +382,12 @@ NAN_METHOD(MPZ::Or) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_ior(*res, *self->value, *num->value);
+  mpz_ior(*res->value, *self->value, *num->value);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -426,14 +404,12 @@ NAN_METHOD(MPZ::Xor) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_xor(*res, *self->value, *num->value);
+  mpz_xor(*res->value, *self->value, *num->value);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -450,13 +426,11 @@ NAN_METHOD(MPZ::Not) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
-  mpz_com(*res, *self->value);
+  mpz_com(*res->value, *self->value);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -472,14 +446,12 @@ NAN_METHOD(MPZ::ShiftLeft) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   auto num = Nan::To<int64_t>(info[0]).FromJust();
-  mpz_mul_2exp(*res, *self->value, num);
+  mpz_mul_2exp(*res->value, *self->value, num);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -496,14 +468,12 @@ NAN_METHOD(MPZ::ShiftRight) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   auto num = Nan::To<int64_t>(info[0]).FromJust();
-  mpz_div_2exp(*res, *self->value, num);
+  mpz_div_2exp(*res->value, *self->value, num);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -520,13 +490,11 @@ NAN_METHOD(MPZ::Abs) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
-  mpz_abs(*res, *self->value);
+  mpz_abs(*res->value, *self->value);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -542,13 +510,11 @@ NAN_METHOD(MPZ::Neg) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
-  mpz_neg(*res, *self->value);
+  mpz_neg(*res->value, *self->value);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -564,13 +530,11 @@ NAN_METHOD(MPZ::Sqrt) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
-  mpz_sqrt(*res, *self->value);
+  mpz_sqrt(*res->value, *self->value);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -586,14 +550,12 @@ NAN_METHOD(MPZ::Root) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   auto num = Nan::To<int64_t>(info[0]).FromJust();
-  mpz_root(*res, *self->value, num);
+  mpz_root(*res->value, *self->value, num);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -611,19 +573,17 @@ NAN_METHOD(MPZ::Powm) {
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
   auto *mod = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   if (info[0]->IsNumber()) {
     auto exp = Nan::To<int64_t>(info[0]).FromJust();
-    mpz_powm_ui(*res, *self->value, exp, *mod->value);
+    mpz_powm_ui(*res->value, *self->value, exp, *mod->value);
   } else {
     auto *exp = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_powm(*res, *self->value, *exp->value, *mod->value);
+    mpz_powm(*res->value, *self->value, *exp->value, *mod->value);
   }
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -646,14 +606,12 @@ NAN_METHOD(MPZ::Pow) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   auto exp = Nan::To<int64_t>(info[0]).FromJust();
-  mpz_pow_ui(*res, *self->value, exp);
+  mpz_pow_ui(*res->value, *self->value, exp);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -690,16 +648,14 @@ NAN_METHOD(MPZ::Rand) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   if (randstate == NULL) {
     initRand();
   }
-  mpz_urandomm(*res, *randstate, *self->value);
+  mpz_urandomm(*res->value, *randstate, *self->value);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -725,13 +681,11 @@ NAN_METHOD(MPZ::NextPrime) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
-  mpz_nextprime(*res, *self->value);
+  mpz_nextprime(*res->value, *self->value);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -747,14 +701,12 @@ NAN_METHOD(MPZ::Invert) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_invert(*res, *self->value, *num->value);
+  mpz_invert(*res->value, *self->value, *num->value);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
@@ -771,14 +723,12 @@ NAN_METHOD(MPZ::Gcd) {
   auto context = info.GetIsolate()->GetCurrentContext();
   auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
 
-  mpz_t *res = (mpz_t *) malloc(sizeof(mpz_t));
-  mpz_init(*res);
+  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
+  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
 
   auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_gcd(*res, *self->value, *num->value);
+  mpz_gcd(*res->value, *self->value, *num->value);
 
-  v8::Local<v8::Value> arg[1] = { Nan::New<v8::External>(res) };
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 1, arg).ToLocalChecked();
   info.GetReturnValue().Set(result);
 }
 
