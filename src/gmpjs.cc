@@ -1,8 +1,9 @@
-#include <nan.h>
+#include <napi.h>
+#include <uv.h>
 #include "mpz.h"
 
-void InitAll (v8::Local<v8::Object> exports) {
-  MPZ::Init(exports);
+Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
+  return MPZ::Init(env, exports);
 }
 
-NODE_MODULE(gmpjs, InitAll);
+NODE_API_MODULE(gmpjs, InitAll);

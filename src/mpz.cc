@@ -1,639 +1,519 @@
 #include "mpz.h"
 
+using namespace Napi;
+
 static gmp_randstate_t *randstate = NULL;
 
-Nan::Persistent<v8::Function> MPZ::constructor;
+FunctionReference MPZ::constructor;
 
-void MPZ::Init(v8::Local<v8::Object> exports) {
-  v8::Local<v8::Context> context = exports->CreationContext();
-  Nan::HandleScope scope;
+Object MPZ::Init(Napi::Env env, Object exports) {
+  HandleScope scope(env);
 
-  auto tmpl = Nan::New<v8::FunctionTemplate>(New);
-  tmpl->SetClassName(Nan::New("MPZInternal").ToLocalChecked());
-  tmpl->InstanceTemplate()->SetInternalFieldCount(1);
+  Function func = DefineClass(env, "MPZInternal", {
+    InstanceMethod("toString", &MPZ::ToString),
+    InstanceMethod("toNumber", &MPZ::ToNumber),
+    InstanceMethod("set", &MPZ::Set),
+    InstanceMethod("add", &MPZ::Add),
+    InstanceMethod("assignAdd", &MPZ::AssignAdd),
+    InstanceMethod("sub", &MPZ::Sub),
+    InstanceMethod("assignSub", &MPZ::AssignSub),
+    InstanceMethod("mul", &MPZ::Mul),
+    InstanceMethod("assignMul", &MPZ::AssignMul),
+    InstanceMethod("div", &MPZ::Div),
+    InstanceMethod("assignDiv", &MPZ::AssignDiv),
+    InstanceMethod("mod", &MPZ::Mod),
+    InstanceMethod("assignMod", &MPZ::AssignMod),
+    InstanceMethod("assignAddMul", &MPZ::AssignAddMul),
+    InstanceMethod("assignSubMul", &MPZ::AssignSubMul),
+    InstanceMethod("and", &MPZ::And),
+    InstanceMethod("assignAnd", &MPZ::AssignAnd),
+    InstanceMethod("or", &MPZ::Or),
+    InstanceMethod("assignOr", &MPZ::AssignOr),
+    InstanceMethod("xor", &MPZ::Xor),
+    InstanceMethod("assignXor", &MPZ::AssignXor),
+    InstanceMethod("not", &MPZ::Not),
+    InstanceMethod("assignNot", &MPZ::AssignNot),
+    InstanceMethod("shiftLeft", &MPZ::ShiftLeft),
+    InstanceMethod("assignShiftLeft", &MPZ::AssignShiftLeft),
+    InstanceMethod("shiftRight", &MPZ::ShiftRight),
+    InstanceMethod("assignShiftRight", &MPZ::AssignShiftRight),
+    InstanceMethod("abs", &MPZ::Abs),
+    InstanceMethod("assignAbs", &MPZ::AssignAbs),
+    InstanceMethod("neg", &MPZ::Neg),
+    InstanceMethod("assignNeg", &MPZ::AssignNeg),
+    InstanceMethod("sqrt", &MPZ::Sqrt),
+    InstanceMethod("assignSqrt", &MPZ::AssignSqrt),
+    InstanceMethod("root", &MPZ::Root),
+    InstanceMethod("assignRoot", &MPZ::AssignRoot),
+    InstanceMethod("powm", &MPZ::Powm),
+    InstanceMethod("assignPowm", &MPZ::AssignPowm),
+    InstanceMethod("pow", &MPZ::Pow),
+    InstanceMethod("assignPow", &MPZ::AssignPow),
+    InstanceMethod("compare", &MPZ::Compare),
+    InstanceMethod("rand", &MPZ::Rand),
+    InstanceMethod("assignRand", &MPZ::AssignRand),
+    InstanceMethod("probPrime", &MPZ::ProbPrime),
+    InstanceMethod("nextPrime", &MPZ::NextPrime),
+    InstanceMethod("assignNextPrime", &MPZ::AssignNextPrime),
+    InstanceMethod("invert", &MPZ::Invert),
+    InstanceMethod("assignInvert", &MPZ::AssignInvert),
+    InstanceMethod("gcd", &MPZ::Gcd),
+    InstanceMethod("assignGcd", &MPZ::AssignGcd),
+    InstanceMethod("bitLength", &MPZ::BitLength)
+  });
 
-  Nan::SetPrototypeMethod(tmpl, "toString", ToString);
-  Nan::SetPrototypeMethod(tmpl, "toNumber", ToNumber);
-  Nan::SetPrototypeMethod(tmpl, "set", Set);
-  Nan::SetPrototypeMethod(tmpl, "add", Add);
-  Nan::SetPrototypeMethod(tmpl, "assignAdd", AssignAdd);
-  Nan::SetPrototypeMethod(tmpl, "sub", Sub);
-  Nan::SetPrototypeMethod(tmpl, "assignSub", AssignSub);
-  Nan::SetPrototypeMethod(tmpl, "mul", Mul);
-  Nan::SetPrototypeMethod(tmpl, "assignMul", AssignMul);
-  Nan::SetPrototypeMethod(tmpl, "div", Div);
-  Nan::SetPrototypeMethod(tmpl, "assignDiv", AssignDiv);
-  Nan::SetPrototypeMethod(tmpl, "mod", Mod);
-  Nan::SetPrototypeMethod(tmpl, "assignMod", AssignMod);
-  Nan::SetPrototypeMethod(tmpl, "assignAddMul", AssignAddMul);
-  Nan::SetPrototypeMethod(tmpl, "assignSubMul", AssignSubMul);
-  Nan::SetPrototypeMethod(tmpl, "and", And);
-  Nan::SetPrototypeMethod(tmpl, "assignAnd", AssignAnd);
-  Nan::SetPrototypeMethod(tmpl, "or", Or);
-  Nan::SetPrototypeMethod(tmpl, "assignOr", AssignOr);
-  Nan::SetPrototypeMethod(tmpl, "xor", Xor);
-  Nan::SetPrototypeMethod(tmpl, "assignXor", AssignXor);
-  Nan::SetPrototypeMethod(tmpl, "not", Not);
-  Nan::SetPrototypeMethod(tmpl, "assignNot", AssignNot);
-  Nan::SetPrototypeMethod(tmpl, "shiftLeft", ShiftLeft);
-  Nan::SetPrototypeMethod(tmpl, "assignShiftLeft", AssignShiftLeft);
-  Nan::SetPrototypeMethod(tmpl, "shiftRight", ShiftRight);
-  Nan::SetPrototypeMethod(tmpl, "assignShiftRight", AssignShiftRight);
-  Nan::SetPrototypeMethod(tmpl, "abs", Abs);
-  Nan::SetPrototypeMethod(tmpl, "assignAbs", AssignAbs);
-  Nan::SetPrototypeMethod(tmpl, "neg", Neg);
-  Nan::SetPrototypeMethod(tmpl, "assignNeg", AssignNeg);
-  Nan::SetPrototypeMethod(tmpl, "sqrt", Sqrt);
-  Nan::SetPrototypeMethod(tmpl, "assignSqrt", AssignSqrt);
-  Nan::SetPrototypeMethod(tmpl, "root", Root);
-  Nan::SetPrototypeMethod(tmpl, "assignRoot", AssignRoot);
-  Nan::SetPrototypeMethod(tmpl, "powm", Powm);
-  Nan::SetPrototypeMethod(tmpl, "assignPowm", AssignPowm);
-  Nan::SetPrototypeMethod(tmpl, "pow", Pow);
-  Nan::SetPrototypeMethod(tmpl, "assignPow", AssignPow);
-  Nan::SetPrototypeMethod(tmpl, "compare", Compare);
-  Nan::SetPrototypeMethod(tmpl, "rand", Rand);
-  Nan::SetPrototypeMethod(tmpl, "assignRand", AssignRand);
-  Nan::SetPrototypeMethod(tmpl, "probPrime", ProbPrime);
-  Nan::SetPrototypeMethod(tmpl, "nextPrime", NextPrime);
-  Nan::SetPrototypeMethod(tmpl, "assignNextPrime", AssignNextPrime);
-  Nan::SetPrototypeMethod(tmpl, "invert", Invert);
-  Nan::SetPrototypeMethod(tmpl, "assignInvert", AssignInvert);
-  Nan::SetPrototypeMethod(tmpl, "gcd", Gcd);
-  Nan::SetPrototypeMethod(tmpl, "assignGcd", AssignGcd);
-  Nan::SetPrototypeMethod(tmpl, "bitLength", BitLength);
+  constructor = Persistent(func);
+  constructor.SuppressDestruct();
 
-  constructor.Reset(tmpl->GetFunction(context).ToLocalChecked());
-  exports->Set(context, Nan::New("MPZInternal").ToLocalChecked(), tmpl->GetFunction(context).ToLocalChecked());
+  exports.Set("MPZInternal", func);
+  return exports;
 }
 
-MPZ::MPZ (const v8::String::Utf8Value& str, int64_t base) : Nan::ObjectWrap () {
-  value = (mpz_t *) malloc(sizeof(mpz_t));
+MPZ::MPZ(const CallbackInfo& info) : ObjectWrap<MPZ>(info) {
+  Napi::Env env = info.Env();
+  HandleScope scope(env);
 
-  mpz_init_set_str(*value, *str, base);
-}
+  this->value = (mpz_t *) malloc(sizeof(mpz_t));
 
-MPZ::MPZ (double num) : Nan::ObjectWrap () {
-  value = (mpz_t *) malloc(sizeof(mpz_t));
-
-  mpz_init_set_d(*value, num);
-}
-
-MPZ::MPZ () : Nan::ObjectWrap () {
-  value = (mpz_t *) malloc(sizeof(mpz_t));
-
-  mpz_init(*value);
+  if (info.Length() == 0) {
+    mpz_init(*this->value);
+  } else if (info[0].IsNumber()) {
+    auto num = info[0].As<Number>().DoubleValue();
+    mpz_init_set_d(*this->value, num);
+  } else {
+    auto base = info[1].As<Number>().Int64Value();
+    mpz_init_set_str(*value, info[0].As<String>().Utf8Value().c_str(), base);
+  }
 }
 
 MPZ::~MPZ () {
-  mpz_clear(*value);
-  free(value);
+  mpz_clear(*this->value);
+  free(this->value);
 }
 
-NAN_METHOD(MPZ::New) {
-  MPZ *self;
-
-  if (info.Length() == 0) {
-    self = new MPZ();
-  } else if (info[0]->IsNumber()) {
-    auto num = Nan::To<double>(info[0]).FromJust();
-
-    self = new MPZ(num);
-  } else {
-    auto context = info.GetIsolate()->GetCurrentContext();
-    auto isolate = context->GetIsolate();
-
-    v8::String::Utf8Value str(isolate, info[0]->ToString(context).ToLocalChecked());
-    auto base = Nan::To<int64_t>(info[1]).FromJust();
-
-    self = new MPZ(str, base);
-  }
-
-  self->Wrap(info.This());
-  info.GetReturnValue().Set(info.This());
-}
-
-NAN_METHOD(MPZ::ToString) {
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::ToString(const CallbackInfo& info) {
+  Napi::Env env = info.Env();
 
   uint64_t base = 10;
   if (info.Length() > 0) {
-    base = Nan::To<int64_t>(info[0]).FromJust();
+    base = info[0].As<Number>().Int64Value();
   }
 
-  char *to = mpz_get_str(0, base, *self->value);
+  char *to = mpz_get_str(0, base, *this->value);
 
-  info.GetReturnValue().Set(Nan::New<v8::String>(to).ToLocalChecked());
+  return String::New(env, to);
   free(to);
 }
 
-NAN_METHOD(MPZ::ToNumber) {
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-
-  info.GetReturnValue().Set(Nan::New<v8::Number>(mpz_get_d(*self->value)));
+Value MPZ::ToNumber(const CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  return Number::New(env, mpz_get_d(*this->value));
 }
 
-NAN_METHOD(MPZ::Set) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-
-  if (info[0]->IsNumber()) {
-    auto num = Nan::To<double>(info[0]).FromJust();
-    mpz_set_d(*self->value, num);
-  } else if (info[0]->IsString()) {
-    auto isolate = context->GetIsolate();
-
-    v8::String::Utf8Value str(isolate, info[0]->ToString(context).ToLocalChecked());
-    auto base = Nan::To<int64_t>(info[1]).FromJust();
-    mpz_set_str(*self->value, *str, base);
+void MPZ::Set(const CallbackInfo& info) {
+  if (info[0].IsNumber()) {
+    auto num = info[0].As<Number>().DoubleValue();
+    mpz_set_d(*this->value, num);
+  } else if (info[0].IsString()) {
+    auto base = info[1].As<Number>().Int64Value();
+    mpz_set_str(*this->value, info[0].As<String>().Utf8Value().c_str(), base);
   } else {
-    auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_set(*self->value, *num->value);
+    auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    mpz_set(*this->value, *num->value);
   }
 }
 
-NAN_METHOD(MPZ::Add) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Add(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
-
-  if (info[0]->IsNumber()) {
-    auto num = Nan::To<int64_t>(info[0]).FromJust();
+  if (info[0].IsNumber()) {
+    auto num = info[0].As<Number>().Int64Value();
     if (num >= 0) {
-      mpz_add_ui(*res->value, *self->value, num);
+      mpz_add_ui(*res->value, *this->value, num);
     } else {
-      mpz_sub_ui(*res->value, *self->value, -num);
+      mpz_sub_ui(*res->value, *this->value, -num);
     }
   } else {
-    auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_add(*res->value, *self->value, *num->value);
+    auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    mpz_add(*res->value, *this->value, *num->value);
   }
 
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignAdd) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
+void MPZ::AssignAdd(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
 
-  if (info[1]->IsNumber()) {
-    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+  if (info[1].IsNumber()) {
+    auto num2 = info[1].As<Number>().Int64Value();
     if (num2 >= 0) {
-      mpz_add_ui(*self->value, *num1->value, num2);
+      mpz_add_ui(*this->value, *num1->value, num2);
     } else {
-      mpz_sub_ui(*self->value, *num1->value, -num2);
+      mpz_sub_ui(*this->value, *num1->value, -num2);
     }
   } else {
-    auto *num2 = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
-    mpz_add(*self->value, *num1->value, *num2->value);
+    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    mpz_add(*this->value, *num1->value, *num2->value);
   }
 }
 
-NAN_METHOD(MPZ::Sub) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Sub(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
-
-  if (info[0]->IsNumber()) {
-    auto num = Nan::To<int64_t>(info[0]).FromJust();
+  if (info[0].IsNumber()) {
+    auto num = info[0].As<Number>().Int64Value();
     if (num >= 0) {
-      mpz_sub_ui(*res->value, *self->value, num);
+      mpz_sub_ui(*res->value, *this->value, num);
     } else {
-      mpz_add_ui(*res->value, *self->value, -num);
+      mpz_add_ui(*res->value, *this->value, -num);
     }
   } else {
-    auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_sub(*res->value, *self->value, *num->value);
+    auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    mpz_sub(*res->value, *this->value, *num->value);
   }
 
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignSub) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
+void MPZ::AssignSub(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
 
-  if (info[1]->IsNumber()) {
-    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+  if (info[1].IsNumber()) {
+    auto num2 = info[1].As<Number>().Int64Value();
     if (num2 >= 0) {
-      mpz_sub_ui(*self->value, *num1->value, num2);
+      mpz_sub_ui(*this->value, *num1->value, num2);
     } else {
-      mpz_add_ui(*self->value, *num1->value, -num2);
+      mpz_add_ui(*this->value, *num1->value, -num2);
     }
   } else {
-    auto *num2 = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
-    mpz_sub(*self->value, *num1->value, *num2->value);
+    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    mpz_sub(*this->value, *num1->value, *num2->value);
   }
 }
 
-NAN_METHOD(MPZ::Mul) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Mul(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
-
-  if (info[0]->IsNumber()) {
-    auto num = Nan::To<int64_t>(info[0]).FromJust();
-    mpz_mul_ui(*res->value, *self->value, num);
+  if (info[0].IsNumber()) {
+    auto num = info[0].As<Number>().Int64Value();
+    mpz_mul_ui(*res->value, *this->value, num);
   } else {
-    auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_mul(*res->value, *self->value, *num->value);
+    auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    mpz_mul(*res->value, *this->value, *num->value);
   }
 
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignMul) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
+void MPZ::AssignMul(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
 
-  if (info[1]->IsNumber()) {
-    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
-    mpz_mul_ui(*self->value, *num1->value, num2);
+  if (info[1].IsNumber()) {
+    auto num2 = info[1].As<Number>().Int64Value();
+    mpz_mul_ui(*this->value, *num1->value, num2);
   } else {
-    auto *num2 = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
-    mpz_mul(*self->value, *num1->value, *num2->value);
+    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    mpz_mul(*this->value, *num1->value, *num2->value);
   }
 }
 
-NAN_METHOD(MPZ::Div) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Div(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
-
-  if (info[0]->IsNumber()) {
-    auto num = Nan::To<int64_t>(info[0]).FromJust();
-    mpz_div_ui(*res->value, *self->value, num);
+  if (info[0].IsNumber()) {
+    auto num = info[0].As<Number>().Int64Value();
+    mpz_div_ui(*res->value, *this->value, num);
   } else {
-    auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_div(*res->value, *self->value, *num->value);
+    auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    mpz_div(*res->value, *this->value, *num->value);
   }
 
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignDiv) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
+void MPZ::AssignDiv(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
 
-  if (info[1]->IsNumber()) {
-    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
-    mpz_div_ui(*self->value, *num1->value, num2);
+  if (info[1].IsNumber()) {
+    auto num2 = info[1].As<Number>().Int64Value();
+    mpz_div_ui(*this->value, *num1->value, num2);
   } else {
-    auto *num2 = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
-    mpz_div(*self->value, *num1->value, *num2->value);
+    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    mpz_div(*this->value, *num1->value, *num2->value);
   }
 }
 
-NAN_METHOD(MPZ::Mod) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Mod(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
-
-  if (info[0]->IsNumber()) {
-    auto num = Nan::To<int64_t>(info[0]).FromJust();
-    mpz_mod_ui(*res->value, *self->value, num);
+  if (info[0].IsNumber()) {
+    auto num = info[0].As<Number>().Int64Value();
+    mpz_mod_ui(*res->value, *this->value, num);
   } else {
-    auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_mod(*res->value, *self->value, *num->value);
+    auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    mpz_mod(*res->value, *this->value, *num->value);
   }
 
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignMod) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
+void MPZ::AssignMod(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
 
-  if (info[1]->IsNumber()) {
-    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
-    mpz_mod_ui(*self->value, *num1->value, num2);
+  if (info[1].IsNumber()) {
+    auto num2 = info[1].As<Number>().Int64Value();
+    mpz_mod_ui(*this->value, *num1->value, num2);
   } else {
-    auto *num2 = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
-    mpz_mod(*self->value, *num1->value, *num2->value);
+    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    mpz_mod(*this->value, *num1->value, *num2->value);
   }
 }
 
-NAN_METHOD(MPZ::AssignAddMul) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
+void MPZ::AssignAddMul(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
 
-  if (info[1]->IsNumber()) {
-    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
-    mpz_addmul_ui(*self->value, *num1->value, num2);
+  if (info[1].IsNumber()) {
+    auto num2 = info[1].As<Number>().Int64Value();
+    mpz_addmul_ui(*this->value, *num1->value, num2);
   } else {
-    auto *num2 = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
-    mpz_addmul(*self->value, *num1->value, *num2->value);
+    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    mpz_addmul(*this->value, *num1->value, *num2->value);
   }
 }
 
-NAN_METHOD(MPZ::AssignSubMul) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
+void MPZ::AssignSubMul(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
 
-  if (info[1]->IsNumber()) {
-    auto num2 = Nan::To<int64_t>(info[1]).FromJust();
-    mpz_submul_ui(*self->value, *num1->value, num2);
+  if (info[1].IsNumber()) {
+    auto num2 = info[1].As<Number>().Int64Value();
+    mpz_submul_ui(*this->value, *num1->value, num2);
   } else {
-    auto *num2 = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
-    mpz_submul(*self->value, *num1->value, *num2->value);
+    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    mpz_submul(*this->value, *num1->value, *num2->value);
   }
 }
 
-NAN_METHOD(MPZ::And) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::And(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  mpz_and(*res->value, *this->value, *num->value);
 
-  auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_and(*res->value, *self->value, *num->value);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignAnd) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  auto *num2 = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
+void MPZ::AssignAnd(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
 
-  mpz_and(*self->value, *num1->value, *num2->value);
+  mpz_and(*this->value, *num1->value, *num2->value);
 }
 
-NAN_METHOD(MPZ::Or) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Or(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  mpz_ior(*res->value, *this->value, *num->value);
 
-  auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_ior(*res->value, *self->value, *num->value);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignOr) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  auto *num2 = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
+void MPZ::AssignOr(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
 
-  mpz_ior(*self->value, *num1->value, *num2->value);
+  mpz_ior(*this->value, *num1->value, *num2->value);
 }
 
-NAN_METHOD(MPZ::Xor) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Xor(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  mpz_xor(*res->value, *this->value, *num->value);
 
-  auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_xor(*res->value, *self->value, *num->value);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignXor) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  auto *num2 = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
+void MPZ::AssignXor(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
 
-  mpz_xor(*self->value, *num1->value, *num2->value);
+  mpz_xor(*this->value, *num1->value, *num2->value);
 }
 
-NAN_METHOD(MPZ::Not) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Not(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  mpz_com(*res->value, *this->value);
 
-  mpz_com(*res->value, *self->value);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignNot) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
+void MPZ::AssignNot(const CallbackInfo& info) {
+  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
 
-  mpz_com(*self->value, *num->value);
+  mpz_com(*this->value, *num->value);
 }
 
-NAN_METHOD(MPZ::ShiftLeft) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::ShiftLeft(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  auto num = info[0].As<Number>().Int64Value();
+  mpz_mul_2exp(*res->value, *this->value, num);
 
-  auto num = Nan::To<int64_t>(info[0]).FromJust();
-  mpz_mul_2exp(*res->value, *self->value, num);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignShiftLeft) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+void MPZ::AssignShiftLeft(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  auto num2 = info[1].As<Number>().Int64Value();
 
-  mpz_mul_2exp(*self->value, *num1->value, num2);
+  mpz_mul_2exp(*this->value, *num1->value, num2);
 }
 
-NAN_METHOD(MPZ::ShiftRight) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::ShiftRight(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  auto num = info[0].As<Number>().Int64Value();
+  mpz_div_2exp(*res->value, *this->value, num);
 
-  auto num = Nan::To<int64_t>(info[0]).FromJust();
-  mpz_div_2exp(*res->value, *self->value, num);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignShiftRight) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+void MPZ::AssignShiftRight(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  auto num2 = info[1].As<Number>().Int64Value();
 
-  mpz_div_2exp(*self->value, *num1->value, num2);
+  mpz_div_2exp(*this->value, *num1->value, num2);
 }
 
-NAN_METHOD(MPZ::Abs) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Abs(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  mpz_abs(*res->value, *this->value);
 
-  mpz_abs(*res->value, *self->value);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignAbs) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
+void MPZ::AssignAbs(const CallbackInfo& info) {
+  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
 
-  mpz_abs(*self->value, *num->value);
+  mpz_abs(*this->value, *num->value);
 }
 
-NAN_METHOD(MPZ::Neg) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Neg(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  mpz_neg(*res->value, *this->value);
 
-  mpz_neg(*res->value, *self->value);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignNeg) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
+void MPZ::AssignNeg(const CallbackInfo& info) {
+  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
 
-  mpz_neg(*self->value, *num->value);
+  mpz_neg(*this->value, *num->value);
 }
 
-NAN_METHOD(MPZ::Sqrt) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Sqrt(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  mpz_sqrt(*res->value, *this->value);
 
-  mpz_sqrt(*res->value, *self->value);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignSqrt) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
+void MPZ::AssignSqrt(const CallbackInfo& info) {
+  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
 
-  mpz_sqrt(*self->value, *num->value);
+  mpz_sqrt(*this->value, *num->value);
 }
 
-NAN_METHOD(MPZ::Root) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Root(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  auto num = info[0].As<Number>().Int64Value();
+  mpz_root(*res->value, *this->value, num);
 
-  auto num = Nan::To<int64_t>(info[0]).FromJust();
-  mpz_root(*res->value, *self->value, num);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignRoot) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  auto num2 = Nan::To<int64_t>(info[1]).FromJust();
+void MPZ::AssignRoot(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  auto num2 = info[1].As<Number>().Int64Value();
 
-  mpz_root(*self->value, *num1->value, num2);
+  mpz_root(*this->value, *num1->value, num2);
 }
 
-NAN_METHOD(MPZ::Powm) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *mod = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
+Value MPZ::Powm(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
-
-  if (info[0]->IsNumber()) {
-    auto exp = Nan::To<int64_t>(info[0]).FromJust();
-    mpz_powm_ui(*res->value, *self->value, exp, *mod->value);
+  auto *mod = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+  if (info[0].IsNumber()) {
+    auto exp = info[0].As<Number>().Int64Value();
+    mpz_powm_ui(*res->value, *this->value, exp, *mod->value);
   } else {
-    auto *exp = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    mpz_powm(*res->value, *self->value, *exp->value, *mod->value);
+    auto *exp = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    mpz_powm(*res->value, *this->value, *exp->value, *mod->value);
   }
 
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignPowm) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *base = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  auto *mod = Nan::ObjectWrap::Unwrap<MPZ>(info[2]->ToObject(context).ToLocalChecked());
+void MPZ::AssignPowm(const CallbackInfo& info) {
+  auto *base = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  auto *mod = ObjectWrap<MPZ>::Unwrap(info[2].As<Object>());
 
-  if (info[1]->IsNumber()) {
-    auto exp = Nan::To<int64_t>(info[1]).FromJust();
-    mpz_powm_ui(*self->value, *base->value, exp, *mod->value);
+  if (info[1].IsNumber()) {
+    auto exp = info[1].As<Number>().Int64Value();
+    mpz_powm_ui(*this->value, *base->value, exp, *mod->value);
   } else {
-    auto *exp = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
-    mpz_powm(*self->value, *base->value, *exp->value, *mod->value);
+    auto *exp = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    mpz_powm(*this->value, *base->value, *exp->value, *mod->value);
   }
 }
 
-NAN_METHOD(MPZ::Pow) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Pow(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  auto exp = info[0].As<Number>().Int64Value();
+  mpz_pow_ui(*res->value, *this->value, exp);
 
-  auto exp = Nan::To<int64_t>(info[0]).FromJust();
-  mpz_pow_ui(*res->value, *self->value, exp);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignPow) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *base = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  auto exp = Nan::To<int64_t>(info[1]).FromJust();
+void MPZ::AssignPow(const CallbackInfo& info) {
+  auto *base = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  auto exp = info[1].As<Number>().Int64Value();
 
-  mpz_pow_ui(*self->value, *base->value, exp);
+  mpz_pow_ui(*this->value, *base->value, exp);
 }
 
-NAN_METHOD(MPZ::Compare) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-
-  if (info[0]->IsNumber()) {
-    auto op = Nan::To<double>(info[0]).FromJust();
-    info.GetReturnValue().Set(Nan::New<v8::Number>(mpz_cmp_d(*self->value, op)));
+Value MPZ::Compare(const CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  if (info[0].IsNumber()) {
+    auto op = info[0].As<Number>().DoubleValue();
+    return Number::New(env, mpz_cmp_d(*this->value, op));
   } else {
-    auto *op = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-    info.GetReturnValue().Set(Nan::New<v8::Number>(mpz_cmp(*self->value, *op->value)));
+    auto *op = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    return Number::New(env, mpz_cmp(*this->value, *op->value));
   }
 }
 
@@ -644,108 +524,85 @@ void initRand() {
     gmp_randseed_ui(*randstate, seed);
 }
 
-NAN_METHOD(MPZ::Rand) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+Value MPZ::Rand(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
   if (randstate == NULL) {
     initRand();
   }
-  mpz_urandomm(*res->value, *randstate, *self->value);
+  mpz_urandomm(*res->value, *randstate, *this->value);
 
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignRand) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *n = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
+void MPZ::AssignRand(const CallbackInfo& info) {
+  auto *n = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
 
   if (randstate == NULL) {
     initRand();
   }
-  mpz_urandomm(*self->value, *randstate, *n->value);
+  mpz_urandomm(*this->value, *randstate, *n->value);
 }
 
-NAN_METHOD(MPZ::ProbPrime) {
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto reps = Nan::To<int64_t>(info[0]).FromJust();
+Value MPZ::ProbPrime(const CallbackInfo& info) {
+  Napi::Env env = info.Env();
+  auto reps = info[0].As<Number>().Int64Value();
 
-  info.GetReturnValue().Set(Nan::New<v8::Number>(mpz_probab_prime_p(*self->value, reps)));
+  return Number::New(env, mpz_probab_prime_p(*this->value, reps));
 }
 
-NAN_METHOD(MPZ::NextPrime) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::NextPrime(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  mpz_nextprime(*res->value, *this->value);
 
-  mpz_nextprime(*res->value, *self->value);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignNextPrime) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
+void MPZ::AssignNextPrime(const CallbackInfo& info) {
+  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
 
-  mpz_nextprime(*self->value, *num->value);
+  mpz_nextprime(*this->value, *num->value);
 }
 
-NAN_METHOD(MPZ::Invert) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Invert(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  mpz_invert(*res->value, *this->value, *num->value);
 
-  auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_invert(*res->value, *self->value, *num->value);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignInvert) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  auto *num2 = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
+void MPZ::AssignInvert(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
 
-  mpz_invert(*self->value, *num1->value, *num2->value);
+  mpz_invert(*this->value, *num1->value, *num2->value);
 }
 
-NAN_METHOD(MPZ::Gcd) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::Gcd(const CallbackInfo& info) {
+  auto result = constructor.New({});
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
-  auto result = Nan::New<v8::Function>(constructor)->NewInstance(context, 0, nullptr).ToLocalChecked();
-  auto *res = Nan::ObjectWrap::Unwrap<MPZ>(result);
+  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  mpz_gcd(*res->value, *this->value, *num->value);
 
-  auto *num = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  mpz_gcd(*res->value, *self->value, *num->value);
-
-  info.GetReturnValue().Set(result);
+  return result;
 }
 
-NAN_METHOD(MPZ::AssignGcd) {
-  auto context = info.GetIsolate()->GetCurrentContext();
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
-  auto *num1 = Nan::ObjectWrap::Unwrap<MPZ>(info[0]->ToObject(context).ToLocalChecked());
-  auto *num2 = Nan::ObjectWrap::Unwrap<MPZ>(info[1]->ToObject(context).ToLocalChecked());
+void MPZ::AssignGcd(const CallbackInfo& info) {
+  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
 
-  mpz_gcd(*self->value, *num1->value, *num2->value);
+  mpz_gcd(*this->value, *num1->value, *num2->value);
 }
 
-NAN_METHOD(MPZ::BitLength) {
-  auto *self = Nan::ObjectWrap::Unwrap<MPZ>(info.This());
+Value MPZ::BitLength(const CallbackInfo& info) {
+  Napi::Env env = info.Env();
 
-  int size = mpz_sizeinbase(*self->value, 2);
-
-  auto result = Nan::New<v8::Integer>(size);
-  info.GetReturnValue().Set(result);
+  return Number::New(env, mpz_sizeinbase(*this->value, 2));
 }
