@@ -226,9 +226,15 @@ Value MPZ::Div(const CallbackInfo& info) {
 
   if (info[0].IsNumber()) {
     auto num = info[0].As<Number>().Int64Value();
+    if (num == 0) {
+      NAPI_THROW_VOID(RangeError::New(info.Env(), "Division by zero"));
+    }
     mpz_div_ui(*res->value, *this->value, num);
   } else {
     auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    if (mpz_cmp_ui(*num->value, 0) == 0) {
+      NAPI_THROW_VOID(RangeError::New(info.Env(), "Division by zero"));
+    }
     mpz_div(*res->value, *this->value, *num->value);
   }
 
@@ -240,9 +246,15 @@ void MPZ::AssignDiv(const CallbackInfo& info) {
 
   if (info[1].IsNumber()) {
     auto num2 = info[1].As<Number>().Int64Value();
+    if (num2 == 0) {
+      NAPI_THROW_VOID(RangeError::New(info.Env(), "Division by zero"));
+    }
     mpz_div_ui(*this->value, *num1->value, num2);
   } else {
     auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    if (mpz_cmp_ui(*num2->value, 0) == 0) {
+      NAPI_THROW_VOID(RangeError::New(info.Env(), "Division by zero"));
+    }
     mpz_div(*this->value, *num1->value, *num2->value);
   }
 }
@@ -253,9 +265,15 @@ Value MPZ::Mod(const CallbackInfo& info) {
 
   if (info[0].IsNumber()) {
     auto num = info[0].As<Number>().Int64Value();
+    if (num == 0) {
+      NAPI_THROW_VOID(RangeError::New(info.Env(), "Mod by zero"));
+    }
     mpz_mod_ui(*res->value, *this->value, num);
   } else {
     auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    if (mpz_cmp_ui(*num->value, 0) == 0) {
+      NAPI_THROW_VOID(RangeError::New(info.Env(), "Mod by zero"));
+    }
     mpz_mod(*res->value, *this->value, *num->value);
   }
 
@@ -267,9 +285,15 @@ void MPZ::AssignMod(const CallbackInfo& info) {
 
   if (info[1].IsNumber()) {
     auto num2 = info[1].As<Number>().Int64Value();
+    if (num2 == 0) {
+      NAPI_THROW_VOID(RangeError::New(info.Env(), "Mod by zero"));
+    }
     mpz_mod_ui(*this->value, *num1->value, num2);
   } else {
     auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    if (mpz_cmp_ui(*num2->value, 0) == 0) {
+      NAPI_THROW_VOID(RangeError::New(info.Env(), "Mod by zero"));
+    }
     mpz_mod(*this->value, *num1->value, *num2->value);
   }
 }
@@ -465,6 +489,10 @@ Value MPZ::Powm(const CallbackInfo& info) {
   auto *res = ObjectWrap<MPZ>::Unwrap(result);
 
   auto *mod = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+  if (mpz_cmp_ui(*mod->value, 0) == 0) {
+    NAPI_THROW_VOID(RangeError::New(info.Env(), "Mod is zero"));
+  }
+
   if (info[0].IsNumber()) {
     auto exp = info[0].As<Number>().Int64Value();
     mpz_powm_ui(*res->value, *this->value, exp, *mod->value);
@@ -479,6 +507,9 @@ Value MPZ::Powm(const CallbackInfo& info) {
 void MPZ::AssignPowm(const CallbackInfo& info) {
   auto *base = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
   auto *mod = ObjectWrap<MPZ>::Unwrap(info[2].As<Object>());
+  if (mpz_cmp_ui(*mod->value, 0) == 0) {
+    NAPI_THROW_VOID(RangeError::New(info.Env(), "Mod is zero"));
+  }
 
   if (info[1].IsNumber()) {
     auto exp = info[1].As<Number>().Int64Value();

@@ -50,4 +50,20 @@ test('div exceptions', () => {
     expect(() => {
         MPZ.div(MPZ(1));
     }).toThrow();
+
+    expect(() => {
+        MPZ.div(MPZ(1), 42, 0);
+    }).toThrow();
+
+    expect(() => {
+        MPZ.div(MPZ(1), 42, MPZ(0));
+    }).toThrow();
+
+    expect(() => {
+        MPZ(42).div(0);
+    }).toThrow();
+
+    expect(() => {
+        MPZ(42).div(MPZ(0));
+    }).toThrow();
 });

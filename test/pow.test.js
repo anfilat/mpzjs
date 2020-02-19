@@ -33,6 +33,14 @@ test('powm exceptions', () => {
     expect(() => {
         MPZ.powm(MPZ(1), MPZ(2), MPZ(3));
     }).toThrow();
+
+    expect(() => {
+        MPZ.powm(MPZ(1), 42, 17, 0);
+    }).toThrow();
+
+    expect(() => {
+        MPZ(42).powm(17, 0);
+    }).toThrow();
 });
 
 test('pow', () => {

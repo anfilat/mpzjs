@@ -45,4 +45,20 @@ test('mod exceptions', () => {
     expect(() => {
         MPZ.mod(MPZ(1));
     }).toThrow();
+
+    expect(() => {
+        MPZ.mod(MPZ(1), 42, 0);
+    }).toThrow();
+
+    expect(() => {
+        MPZ.mod(MPZ(1), 42, MPZ(0));
+    }).toThrow();
+
+    expect(() => {
+        MPZ(42).mod(0);
+    }).toThrow();
+
+    expect(() => {
+        MPZ(42).mod(MPZ(0));
+    }).toThrow();
 });
