@@ -2,6 +2,25 @@
 
 using namespace Napi;
 
+#define NEW_MPZ(RESULT, RES)  \
+  auto result = constructor.New({});  \
+  auto *res = ObjectWrap<MPZ>::Unwrap(result);
+
+#define GET_INT_ARG(I, VAR)  \
+  auto VAR = info[I].As<Number>().Int64Value();
+
+#define GET_DOUBLE_ARG(I, VAR)  \
+  auto VAR = info[I].As<Number>().DoubleValue();
+
+#define GET_MPZ_ARG(I, VAR)  \
+  auto *VAR = ObjectWrap<MPZ>::Unwrap(info[I].As<Object>());
+
+#define IS_NUMBER_ARG(I)  \
+  info[I].IsNumber()
+
+#define IS_STRING_ARG(I)  \
+  info[I].IsString()
+
 static gmp_randstate_t *randstate = NULL;
 
 FunctionReference MPZ::constructor;
@@ -77,11 +96,11 @@ MPZ::MPZ(const CallbackInfo& info) : ObjectWrap<MPZ>(info) {
 
   if (info.Length() == 0) {
     mpz_init(*this->value);
-  } else if (info[0].IsNumber()) {
-    auto num = info[0].As<Number>().DoubleValue();
+  } else if (IS_NUMBER_ARG(0)) {
+    GET_DOUBLE_ARG(0, num);
     mpz_init_set_d(*this->value, num);
   } else {
-    auto base = info[1].As<Number>().Int64Value();
+    GET_INT_ARG(1, base);
     mpz_init_set_str(*value, info[0].As<String>().Utf8Value().c_str(), base);
   }
 }
@@ -111,31 +130,29 @@ Value MPZ::ToNumber(const CallbackInfo& info) {
 }
 
 void MPZ::Set(const CallbackInfo& info) {
-  if (info[0].IsNumber()) {
-    auto num = info[0].As<Number>().DoubleValue();
+  if (IS_NUMBER_ARG(0)) {
+    GET_DOUBLE_ARG(0, num);
     mpz_set_d(*this->value, num);
-  } else if (info[0].IsString()) {
-    auto base = info[1].As<Number>().Int64Value();
+  } else if (IS_STRING_ARG(0)) {
+    GET_INT_ARG(1, base);
     mpz_set_str(*this->value, info[0].As<String>().Utf8Value().c_str(), base);
   } else {
-    auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    GET_MPZ_ARG(0, num);
     mpz_set(*this->value, *num->value);
   }
 }
 
 Value MPZ::Add(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  if (info[0].IsNumber()) {
-    auto num = info[0].As<Number>().Int64Value();
+  NEW_MPZ(result, res);
+  if (IS_NUMBER_ARG(0)) {
+    GET_INT_ARG(0, num);
     if (num >= 0) {
       mpz_add_ui(*res->value, *this->value, num);
     } else {
       mpz_sub_ui(*res->value, *this->value, -num);
     }
   } else {
-    auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    GET_MPZ_ARG(0, num);
     mpz_add(*res->value, *this->value, *num->value);
   }
 
@@ -143,34 +160,31 @@ Value MPZ::Add(const CallbackInfo& info) {
 }
 
 void MPZ::AssignAdd(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-
-  if (info[1].IsNumber()) {
-    auto num2 = info[1].As<Number>().Int64Value();
+  GET_MPZ_ARG(0, num1);
+  if (IS_NUMBER_ARG(1)) {
+    GET_INT_ARG(1, num2);
     if (num2 >= 0) {
       mpz_add_ui(*this->value, *num1->value, num2);
     } else {
       mpz_sub_ui(*this->value, *num1->value, -num2);
     }
   } else {
-    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    GET_MPZ_ARG(1, num2);
     mpz_add(*this->value, *num1->value, *num2->value);
   }
 }
 
 Value MPZ::Sub(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  if (info[0].IsNumber()) {
-    auto num = info[0].As<Number>().Int64Value();
+  NEW_MPZ(result, res);
+  if (IS_NUMBER_ARG(0)) {
+    GET_INT_ARG(0, num);
     if (num >= 0) {
       mpz_sub_ui(*res->value, *this->value, num);
     } else {
       mpz_add_ui(*res->value, *this->value, -num);
     }
   } else {
-    auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    GET_MPZ_ARG(0, num);
     mpz_sub(*res->value, *this->value, *num->value);
   }
 
@@ -178,30 +192,27 @@ Value MPZ::Sub(const CallbackInfo& info) {
 }
 
 void MPZ::AssignSub(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-
-  if (info[1].IsNumber()) {
-    auto num2 = info[1].As<Number>().Int64Value();
+  GET_MPZ_ARG(0, num1);
+  if (IS_NUMBER_ARG(1)) {
+    GET_INT_ARG(1, num2);
     if (num2 >= 0) {
       mpz_sub_ui(*this->value, *num1->value, num2);
     } else {
       mpz_add_ui(*this->value, *num1->value, -num2);
     }
   } else {
-    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    GET_MPZ_ARG(1, num2);
     mpz_sub(*this->value, *num1->value, *num2->value);
   }
 }
 
 Value MPZ::Mul(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  if (info[0].IsNumber()) {
-    auto num = info[0].As<Number>().Int64Value();
+  NEW_MPZ(result, res);
+  if (IS_NUMBER_ARG(0)) {
+    GET_INT_ARG(0, num);
     mpz_mul_ui(*res->value, *this->value, num);
   } else {
-    auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    GET_MPZ_ARG(0, num);
     mpz_mul(*res->value, *this->value, *num->value);
   }
 
@@ -209,29 +220,26 @@ Value MPZ::Mul(const CallbackInfo& info) {
 }
 
 void MPZ::AssignMul(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-
-  if (info[1].IsNumber()) {
-    auto num2 = info[1].As<Number>().Int64Value();
+  GET_MPZ_ARG(0, num1);
+  if (IS_NUMBER_ARG(1)) {
+    GET_INT_ARG(1, num2);
     mpz_mul_ui(*this->value, *num1->value, num2);
   } else {
-    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    GET_MPZ_ARG(1, num2);
     mpz_mul(*this->value, *num1->value, *num2->value);
   }
 }
 
 Value MPZ::Div(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  if (info[0].IsNumber()) {
-    auto num = info[0].As<Number>().Int64Value();
+  NEW_MPZ(result, res);
+  if (IS_NUMBER_ARG(0)) {
+    GET_INT_ARG(0, num);
     if (num == 0) {
       NAPI_THROW_VOID(RangeError::New(info.Env(), "Division by zero"));
     }
     mpz_div_ui(*res->value, *this->value, num);
   } else {
-    auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    GET_MPZ_ARG(0, num);
     if (mpz_cmp_ui(*num->value, 0) == 0) {
       NAPI_THROW_VOID(RangeError::New(info.Env(), "Division by zero"));
     }
@@ -242,16 +250,15 @@ Value MPZ::Div(const CallbackInfo& info) {
 }
 
 void MPZ::AssignDiv(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-
-  if (info[1].IsNumber()) {
-    auto num2 = info[1].As<Number>().Int64Value();
+  GET_MPZ_ARG(0, num1);
+  if (IS_NUMBER_ARG(1)) {
+    GET_INT_ARG(1, num2);
     if (num2 == 0) {
       NAPI_THROW_VOID(RangeError::New(info.Env(), "Division by zero"));
     }
     mpz_div_ui(*this->value, *num1->value, num2);
   } else {
-    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    GET_MPZ_ARG(1, num2);
     if (mpz_cmp_ui(*num2->value, 0) == 0) {
       NAPI_THROW_VOID(RangeError::New(info.Env(), "Division by zero"));
     }
@@ -260,17 +267,15 @@ void MPZ::AssignDiv(const CallbackInfo& info) {
 }
 
 Value MPZ::Mod(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  if (info[0].IsNumber()) {
-    auto num = info[0].As<Number>().Int64Value();
+  NEW_MPZ(result, res);
+  if (IS_NUMBER_ARG(0)) {
+    GET_INT_ARG(0, num);
     if (num == 0) {
       NAPI_THROW_VOID(RangeError::New(info.Env(), "Mod by zero"));
     }
     mpz_mod_ui(*res->value, *this->value, num);
   } else {
-    auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    GET_MPZ_ARG(0, num);
     if (mpz_cmp_ui(*num->value, 0) == 0) {
       NAPI_THROW_VOID(RangeError::New(info.Env(), "Mod by zero"));
     }
@@ -281,16 +286,15 @@ Value MPZ::Mod(const CallbackInfo& info) {
 }
 
 void MPZ::AssignMod(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-
-  if (info[1].IsNumber()) {
-    auto num2 = info[1].As<Number>().Int64Value();
+  GET_MPZ_ARG(0, num1);
+  if (IS_NUMBER_ARG(1)) {
+    GET_INT_ARG(1, num2);
     if (num2 == 0) {
       NAPI_THROW_VOID(RangeError::New(info.Env(), "Mod by zero"));
     }
     mpz_mod_ui(*this->value, *num1->value, num2);
   } else {
-    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    GET_MPZ_ARG(1, num2);
     if (mpz_cmp_ui(*num2->value, 0) == 0) {
       NAPI_THROW_VOID(RangeError::New(info.Env(), "Mod by zero"));
     }
@@ -299,205 +303,181 @@ void MPZ::AssignMod(const CallbackInfo& info) {
 }
 
 void MPZ::AssignAddMul(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-
-  if (info[1].IsNumber()) {
-    auto num2 = info[1].As<Number>().Int64Value();
+  GET_MPZ_ARG(0, num1);
+  if (IS_NUMBER_ARG(1)) {
+    GET_INT_ARG(1, num2);
     mpz_addmul_ui(*this->value, *num1->value, num2);
   } else {
-    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    GET_MPZ_ARG(1, num2);
     mpz_addmul(*this->value, *num1->value, *num2->value);
   }
 }
 
 void MPZ::AssignSubMul(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-
-  if (info[1].IsNumber()) {
-    auto num2 = info[1].As<Number>().Int64Value();
+  GET_MPZ_ARG(0, num1);
+  if (IS_NUMBER_ARG(1)) {
+    GET_INT_ARG(1, num2);
     mpz_submul_ui(*this->value, *num1->value, num2);
   } else {
-    auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    GET_MPZ_ARG(1, num2);
     mpz_submul(*this->value, *num1->value, *num2->value);
   }
 }
 
 Value MPZ::And(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  NEW_MPZ(result, res);
+  GET_MPZ_ARG(0, num);
   mpz_and(*res->value, *this->value, *num->value);
 
   return result;
 }
 
 void MPZ::AssignAnd(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-  auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+  GET_MPZ_ARG(0, num1);
+  GET_MPZ_ARG(1, num2);
 
   mpz_and(*this->value, *num1->value, *num2->value);
 }
 
 Value MPZ::Or(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  NEW_MPZ(result, res);
+  GET_MPZ_ARG(0, num);
   mpz_ior(*res->value, *this->value, *num->value);
 
   return result;
 }
 
 void MPZ::AssignOr(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-  auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+  GET_MPZ_ARG(0, num1);
+  GET_MPZ_ARG(1, num2);
 
   mpz_ior(*this->value, *num1->value, *num2->value);
 }
 
 Value MPZ::Xor(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  NEW_MPZ(result, res);
+  GET_MPZ_ARG(0, num);
   mpz_xor(*res->value, *this->value, *num->value);
 
   return result;
 }
 
 void MPZ::AssignXor(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-  auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+  GET_MPZ_ARG(0, num1);
+  GET_MPZ_ARG(1, num2);
 
   mpz_xor(*this->value, *num1->value, *num2->value);
 }
 
 Value MPZ::Not(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
+  NEW_MPZ(result, res);
   mpz_com(*res->value, *this->value);
 
   return result;
 }
 
 void MPZ::AssignNot(const CallbackInfo& info) {
-  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  GET_MPZ_ARG(0, num);
 
   mpz_com(*this->value, *num->value);
 }
 
 Value MPZ::ShiftLeft(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  auto num = info[0].As<Number>().Int64Value();
+  NEW_MPZ(result, res);
+  GET_INT_ARG(0, num);
   mpz_mul_2exp(*res->value, *this->value, num);
 
   return result;
 }
 
 void MPZ::AssignShiftLeft(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-  auto num2 = info[1].As<Number>().Int64Value();
+  GET_MPZ_ARG(0, num1);
+  GET_INT_ARG(1, num2);
 
   mpz_mul_2exp(*this->value, *num1->value, num2);
 }
 
 Value MPZ::ShiftRight(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  auto num = info[0].As<Number>().Int64Value();
+  NEW_MPZ(result, res);
+  GET_INT_ARG(0, num);
   mpz_div_2exp(*res->value, *this->value, num);
 
   return result;
 }
 
 void MPZ::AssignShiftRight(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-  auto num2 = info[1].As<Number>().Int64Value();
+  GET_MPZ_ARG(0, num1);
+  GET_INT_ARG(1, num2);
 
   mpz_div_2exp(*this->value, *num1->value, num2);
 }
 
 Value MPZ::Abs(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
+  NEW_MPZ(result, res);
   mpz_abs(*res->value, *this->value);
 
   return result;
 }
 
 void MPZ::AssignAbs(const CallbackInfo& info) {
-  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  GET_MPZ_ARG(0, num);
 
   mpz_abs(*this->value, *num->value);
 }
 
 Value MPZ::Neg(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
+  NEW_MPZ(result, res);
   mpz_neg(*res->value, *this->value);
 
   return result;
 }
 
 void MPZ::AssignNeg(const CallbackInfo& info) {
-  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  GET_MPZ_ARG(0, num);
 
   mpz_neg(*this->value, *num->value);
 }
 
 Value MPZ::Sqrt(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
+  NEW_MPZ(result, res);
   mpz_sqrt(*res->value, *this->value);
 
   return result;
 }
 
 void MPZ::AssignSqrt(const CallbackInfo& info) {
-  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  GET_MPZ_ARG(0, num);
 
   mpz_sqrt(*this->value, *num->value);
 }
 
 Value MPZ::Root(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  auto num = info[0].As<Number>().Int64Value();
+  NEW_MPZ(result, res);
+  GET_INT_ARG(0, num);
   mpz_root(*res->value, *this->value, num);
 
   return result;
 }
 
 void MPZ::AssignRoot(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-  auto num2 = info[1].As<Number>().Int64Value();
+  GET_MPZ_ARG(0, num1);
+  GET_INT_ARG(1, num2);
 
   mpz_root(*this->value, *num1->value, num2);
 }
 
 Value MPZ::Powm(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  auto *mod = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+  NEW_MPZ(result, res);
+  GET_MPZ_ARG(1, mod);
   if (mpz_cmp_ui(*mod->value, 0) == 0) {
     NAPI_THROW_VOID(RangeError::New(info.Env(), "Mod is zero"));
   }
 
-  if (info[0].IsNumber()) {
-    auto exp = info[0].As<Number>().Int64Value();
+  if (IS_NUMBER_ARG(0)) {
+    GET_INT_ARG(0, exp);
     mpz_powm_ui(*res->value, *this->value, exp, *mod->value);
   } else {
-    auto *exp = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    GET_MPZ_ARG(0, exp);
     mpz_powm(*res->value, *this->value, *exp->value, *mod->value);
   }
 
@@ -505,45 +485,43 @@ Value MPZ::Powm(const CallbackInfo& info) {
 }
 
 void MPZ::AssignPowm(const CallbackInfo& info) {
-  auto *base = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-  auto *mod = ObjectWrap<MPZ>::Unwrap(info[2].As<Object>());
+  GET_MPZ_ARG(0, base);
+  GET_MPZ_ARG(2, mod);
   if (mpz_cmp_ui(*mod->value, 0) == 0) {
     NAPI_THROW_VOID(RangeError::New(info.Env(), "Mod is zero"));
   }
 
-  if (info[1].IsNumber()) {
-    auto exp = info[1].As<Number>().Int64Value();
+  if (IS_NUMBER_ARG(1)) {
+    GET_INT_ARG(1, exp);
     mpz_powm_ui(*this->value, *base->value, exp, *mod->value);
   } else {
-    auto *exp = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+    GET_MPZ_ARG(1, exp);
     mpz_powm(*this->value, *base->value, *exp->value, *mod->value);
   }
 }
 
 Value MPZ::Pow(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  auto exp = info[0].As<Number>().Int64Value();
+  NEW_MPZ(result, res);
+  GET_INT_ARG(0, exp);
   mpz_pow_ui(*res->value, *this->value, exp);
 
   return result;
 }
 
 void MPZ::AssignPow(const CallbackInfo& info) {
-  auto *base = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-  auto exp = info[1].As<Number>().Int64Value();
+  GET_MPZ_ARG(0, base);
+  GET_INT_ARG(1, exp);
 
   mpz_pow_ui(*this->value, *base->value, exp);
 }
 
 Value MPZ::Compare(const CallbackInfo& info) {
   Napi::Env env = info.Env();
-  if (info[0].IsNumber()) {
-    auto op = info[0].As<Number>().DoubleValue();
+  if (IS_NUMBER_ARG(0)) {
+    GET_DOUBLE_ARG(0, op);
     return Number::New(env, mpz_cmp_d(*this->value, op));
   } else {
-    auto *op = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+    GET_MPZ_ARG(0, op);
     return Number::New(env, mpz_cmp(*this->value, *op->value));
   }
 }
@@ -556,9 +534,7 @@ void initRand() {
 }
 
 Value MPZ::Rand(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
+  NEW_MPZ(result, res);
   if (randstate == NULL) {
     initRand();
   }
@@ -568,66 +544,59 @@ Value MPZ::Rand(const CallbackInfo& info) {
 }
 
 void MPZ::AssignRand(const CallbackInfo& info) {
-  auto *n = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-
+  GET_MPZ_ARG(0, num);
   if (randstate == NULL) {
     initRand();
   }
-  mpz_urandomm(*this->value, *randstate, *n->value);
+  mpz_urandomm(*this->value, *randstate, *num->value);
 }
 
 Value MPZ::ProbPrime(const CallbackInfo& info) {
   Napi::Env env = info.Env();
-  auto reps = info[0].As<Number>().Int64Value();
+  GET_INT_ARG(0, reps);
 
   return Number::New(env, mpz_probab_prime_p(*this->value, reps));
 }
 
 Value MPZ::NextPrime(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
+  NEW_MPZ(result, res);
   mpz_nextprime(*res->value, *this->value);
 
   return result;
 }
 
 void MPZ::AssignNextPrime(const CallbackInfo& info) {
-  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  GET_MPZ_ARG(0, num);
 
   mpz_nextprime(*this->value, *num->value);
 }
 
 Value MPZ::Invert(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  NEW_MPZ(result, res);
+  GET_MPZ_ARG(0, num);
   mpz_invert(*res->value, *this->value, *num->value);
 
   return result;
 }
 
 void MPZ::AssignInvert(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-  auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+  GET_MPZ_ARG(0, num1);
+  GET_MPZ_ARG(1, num2);
 
   mpz_invert(*this->value, *num1->value, *num2->value);
 }
 
 Value MPZ::Gcd(const CallbackInfo& info) {
-  auto result = constructor.New({});
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
-
-  auto *num = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
+  NEW_MPZ(result, res);
+  GET_MPZ_ARG(0, num);
   mpz_gcd(*res->value, *this->value, *num->value);
 
   return result;
 }
 
 void MPZ::AssignGcd(const CallbackInfo& info) {
-  auto *num1 = ObjectWrap<MPZ>::Unwrap(info[0].As<Object>());
-  auto *num2 = ObjectWrap<MPZ>::Unwrap(info[1].As<Object>());
+  GET_MPZ_ARG(0, num1);
+  GET_MPZ_ARG(1, num2);
 
   mpz_gcd(*this->value, *num1->value, *num2->value);
 }
