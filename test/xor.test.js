@@ -1,4 +1,4 @@
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 test('xor', () => {
     for (let i = -10; i < 10; i++) {

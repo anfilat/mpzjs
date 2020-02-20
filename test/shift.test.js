@@ -1,4 +1,4 @@
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 test('shift left', () => {
     expect(MPZ(37).shiftLeft(2).toNumber()).toBe(37 << 2);

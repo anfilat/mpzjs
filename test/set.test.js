@@ -1,4 +1,4 @@
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 test('set', () => {
     const result = MPZ(0);

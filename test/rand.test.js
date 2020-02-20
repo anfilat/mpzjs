@@ -1,4 +1,4 @@
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 test('rand', () => {
     for (let i = 1; i < 100000; i += 2111) {

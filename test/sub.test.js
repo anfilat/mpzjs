@@ -1,4 +1,4 @@
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 test('sub', () => {
     [-100, -10, -5, -1, 0, 1, 5, 10, 100].forEach(i => {

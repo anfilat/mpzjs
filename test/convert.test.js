@@ -1,5 +1,5 @@
 const inspect = require('util').inspect;
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 test('convert', () => {
   expect(MPZ(42).toString()).toBe('42');

@@ -1,4 +1,4 @@
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 test('gcd', () => {
     const b1 = MPZ('234897235923342343242');

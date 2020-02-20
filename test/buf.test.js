@@ -1,4 +1,4 @@
-const {MPZ} = require('../');
+const MPZ = require('../');
 const put = require('put');
 
 test('buf be', () => {

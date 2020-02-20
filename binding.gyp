@@ -1,7 +1,7 @@
 {
   'targets': [
     {
-      'target_name': 'gmpjs',
+      'target_name': 'mpzjs',
       'cflags!': [ '-fno-exceptions' ],
       'cflags_cc!': [ '-fno-exceptions' ],
       'xcode_settings': { 'GCC_ENABLE_CPP_EXCEPTIONS': 'YES',
@@ -11,7 +11,7 @@
       'msvs_settings': {
         'VCCLCompilerTool': { 'ExceptionHandling': 1 },
       },
-      'sources': [ 'src/gmpjs.cc', 'src/mpz.cc' ],
+      'sources': [ 'src/mpzjs.cc', 'src/mpz.cc' ],
       'include_dirs': [
         '<!@(node -p "require(\'node-addon-api\').include")',
       ],

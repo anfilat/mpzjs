@@ -8,7 +8,7 @@
  */
 
 const assert = require('assert');
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 const n = +process.argv[2] || 10000;
 

@@ -1,7 +1,7 @@
 // Generate two primes p and q to the Digital Signature Standard (DSS)
 // http://www.itl.nist.gov/fipspubs/fip186.htm appendix 2.2
 
-const {MPZ} = require('../');
+const MPZ = require('../');
 const assert = require('assert');
 
 const q = MPZ(2).pow(159).add(1).rand(MPZ(2).pow(160)).nextPrime();

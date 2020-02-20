@@ -1,4 +1,4 @@
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 test('not', () => {
     expect(MPZ(0).not().toNumber()).toBe(~0);

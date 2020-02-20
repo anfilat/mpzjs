@@ -1,4 +1,4 @@
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 test('powm', () => {
     [ 2, '2', MPZ(2), 2n ].forEach(two => {

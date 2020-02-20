@@ -1,4 +1,4 @@
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 test('primes', () => {
     const ps = { 2: true, 3: true, 5: true, 7: true };

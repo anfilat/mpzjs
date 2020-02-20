@@ -1,4 +1,4 @@
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 test('mod', () => {
     for (let i = 0; i < 10; i++) {

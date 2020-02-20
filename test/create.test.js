@@ -1,4 +1,4 @@
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 test('create', () => {
     expect(MPZ(1337).toNumber()).toBe(1337);

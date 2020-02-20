@@ -1,4 +1,4 @@
-gmpjs
+mpzjs
 ======
 
 Arbitrary precision integral arithmetic for node.js!
@@ -20,7 +20,7 @@ example
 simple.js
 ---------
 
-    const {MPZ} = require('gmpjs');
+    const MPZ = require('mpzjs');
     
     const b = MPZ('782910138827292261791972728324982')
         .sub('182373273283402171237474774728373')
@@ -37,7 +37,7 @@ perfect.js
 Generate the perfect numbers:
 
     // If 2**n-1 is prime, then (2**n-1) * 2**(n-1) is perfect.
-    const {MPZ} = require('gmpjs');
+    const MPZ = require('mpzjs');
 
     for (let n = 0; n < 100; n++) {
         const p = MPZ.pow(2, n).sub(1);

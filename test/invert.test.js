@@ -1,4 +1,4 @@
-const {MPZ} = require('../');
+const MPZ = require('../');
 
 test('invert', () => {
     // numbers from http://www.itl.nist.gov/fipspubs/fip186.htm appendix 5

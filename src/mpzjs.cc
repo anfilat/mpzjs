@@ -6,4 +6,4 @@ Napi::Object InitAll(Napi::Env env, Napi::Object exports) {
   return MPZ::Init(env, exports);
 }
 
-NODE_API_MODULE(gmpjs, InitAll);
+NODE_API_MODULE(mpzjs, InitAll);
