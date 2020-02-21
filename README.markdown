@@ -2,8 +2,9 @@ mpzjs
 ======
 
 Arbitrary precision integral arithmetic for node.js!
+Based on [node-bigint](https://github.com/substack/node-bigint)
 
-![build & test CI](https://github.com/anfilat/node-bigint/workflows/build%20&%20test%20CI/badge.svg)
+![build & test CI](https://github.com/anfilat/mpzjs/workflows/build%20&%20test%20CI/badge.svg)
 
 This library wraps around [libgmp](http://gmplib.org/)'s
 [integer functions](http://gmplib.org/manual/Integer-Functions.html#Integer-Functions)

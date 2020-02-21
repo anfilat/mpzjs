@@ -14,10 +14,10 @@ jobs:
 
     steps:
     - name: Install gmplib (Linux)
-      run: sudo apt-get install libgmp-dev
+      run: sudo apt-get install texinfo
       if: matrix.os == 'ubuntu-latest'
     - name: Install gmplib (macOS)
-      run: brew install gmp
+      run: brew install texinfo
       if: matrix.os == 'macos-latest'
     - uses: actions/checkout@v2
     - name: Use Node.js ${{ matrix.node-version }}
