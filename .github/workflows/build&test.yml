@@ -13,10 +13,10 @@ jobs:
         node-version: [12.x, 13.x]
 
     steps:
-    - name: Install gmplib (Linux)
+    - name: Install texinfo (Linux)
       run: sudo apt-get install texinfo
       if: matrix.os == 'ubuntu-latest'
-    - name: Install gmplib (macOS)
+    - name: Install texinfo (macOS)
       run: brew install texinfo
       if: matrix.os == 'macos-latest'
     - uses: actions/checkout@v2

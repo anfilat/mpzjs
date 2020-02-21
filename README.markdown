@@ -1,21 +1,23 @@
 mpzjs
-======
+=====
 
-Arbitrary precision integral arithmetic for node.js!
+Arbitrary precision integral arithmetic for node.js.
 Based on [node-bigint](https://github.com/substack/node-bigint)
 
 ![build & test CI](https://github.com/anfilat/mpzjs/workflows/build%20&%20test%20CI/badge.svg)
 
-This library wraps around [libgmp](http://gmplib.org/)'s
-[integer functions](http://gmplib.org/manual/Integer-Functions.html#Integer-Functions)
+This library wraps around [libgmp](https://gmplib.org/)'s
+[integer functions](https://gmplib.org/manual/Integer-Functions.html#Integer-Functions)
 to perform infinite-precision arithmetic.
 
-You should also consider using
-[bignum](https://github.com/justmoon/node-bignum),
-which is based on the bigint api but uses openssl instead of libgmp,
-which you are more likely to already have on your system.
+mpzjs is several times faster than BigInt. 
 
-example
+Install
+=======
+
+    npm install mpzjs
+
+Example
 =======
 
 simple.js
@@ -23,13 +25,21 @@ simple.js
 
     const MPZ = require('mpzjs');
     
+    const n = MPZ('782910138827292261791972728324982');
+    MPZ.sub(n, n, '182373273283402171237474774728373');
+    MPZ.div(n, n, 8);
+    
+    console.log(n);
+    
     const b = MPZ('782910138827292261791972728324982')
         .sub('182373273283402171237474774728373')
         .div(8);
+    
     console.log(b);
 
 ***
     $ node simple.js
+    <MPZ 75067108192986261319312244199576>
     <MPZ 75067108192986261319312244199576>
 
 perfect.js
@@ -41,9 +51,9 @@ Generate the perfect numbers:
     const MPZ = require('mpzjs');
 
     for (let n = 0; n < 100; n++) {
-        const p = MPZ.pow(2, n).sub(1);
+        const p = MPZ(2).pow(n).sub(1);
         if (p.probPrime(50)) {
-            const perfect = p.mul(MPZ.pow(2, n - 1));
+            const perfect = p.mul(MPZ(2).pow(n - 1));
             console.log(perfect.toString());
         }
     }
@@ -61,242 +71,263 @@ Generate the perfect numbers:
     2658455991569831744654692615953842176
     191561942608236107294793378084303638130997321548169216
 
-methods[0]
-==========
+API
+===
 
-bigint(n, base=10)
-------------------
+There are two sets of methods
 
-Create a new `bigint` from `n` and a base. `n` can be a string, integer, or
-another `bigint`.
+Instance methods that create new `MPZ`.
+```
+const num = value.method(operand);
+```
+
+for example
+```
+const value = MPZ(7);
+const result = value.mul(6);
+```
+
+And static methods that save the result to the specified variable.
+```
+MPZ.method(result, value, operand);
+```
+
+for example
+```
+const result = MPZ();
+MPZ.mul(result, 7, 6);
+```
+Static methods are noticeably faster.
+
+MPZ(num, base=10)
+-----------------
+
+Create a new `MPZ` from `num` and a base. `num` can be a string, number, BigInt, empty or another `MPZ`.
 
 If you pass in a string you can set the base that string is encoded in.
 
-.toString(base=10)
-------------------
+value.toString(base=10)
+-----------------------
 
-Print out the `bigint` instance in the requested base as a string.
+Print out the `MPZ` instance in the requested base as a string.
 
-bigint.fromBuffer(buf, opts)
-----------------------
+value.toNumber()
+----------------
 
-Create a new `bigint` from a `Buffer`.
+Turn a `MPZ` into a `Number`. If the `MPZ` is too big you'll lose precision or you'll get ±`Infinity`.
+
+value.toBigInt(), value.toJSON()
+--------------------------------
+
+Convert `MPZ` to the specified format
+
+value.valueOf()
+---------------
+
+Convert `MPZ` to BigInt
+
+MPZ.fromBuffer(buf, opts)
+-------------------------
+
+Create a new `MPZ` from a `Buffer`.
 
 The default options are:
+```
     {
         order : 'forward', // low-to-high indexed word ordering
         endian : 'big',
         size : 1, // number of bytes in each word
     }
-
+```
 Note that endian doesn't matter when size = 1.
 
-methods[1]
-==========
+value.toBuffer(opts)
+--------------------
 
-For all of the instance methods below you can write either
+Return a new `Buffer` with the data from the `MPZ`.
 
-    bigint.method(x, y, z)
+The default options are:
+```
+    {
+        order : 'forward', // low-to-high indexed word ordering
+        endian : 'big',
+        size : 1, // number of bytes in each word
+    }
+```
+Note that endian doesn't matter when size = 1.
 
-or if x is a `bigint` instance``
+value.set(num), MPZ.set(value, num)
+-----------------------------------
 
-    x.method(y, z)
+Assigns `num` to `value`.
 
-.toNumber()
------------
+result = value.add(num), MPZ.add(result, value, num)
+----------------------------------------------------
 
-Turn a `bigint` into a `Number`. If the `bigint` is too big you'll lose
-precision or you'll get ±`Infinity`.
+Set `result` to `value` plus `num`.
 
-.toBuffer(opts)
+result = value.sub(num), MPZ.sub(result, value, num)
+----------------------------------------------------
+
+Set `result` to `value` minus `num`.
+
+result = value.mul(num), MPZ.mul(result, value, num)
+----------------------------------------------------
+
+Set `result` to `value` multiplied by `num`.
+
+result = value.div(num), MPZ.div(result, value, num)
+----------------------------------------------------
+
+Set `result` to `value` integrally divided by `num`.
+
+result = value.mod(num), MPZ.mod(result, value, num)
+----------------------------------------------------
+
+Set `result` to `value` modulo `num`.
+
+MPZ.addMul(result, value1, value2)
+----------------------------------
+
+Set `result` to `result` plus `value1` times `value2`.
+
+MPZ.subMul(result, value1, value2)
+----------------------------------
+
+Set `result` to `result` minus `value1` times `value2`.
+
+result = value.and(num), MPZ.and(result, value, num)
+----------------------------------------------------
+
+Set `result` to `value` bitwise AND (&)-ed with `num`.
+
+result = value.or(num), MPZ.or(result, value, num)
+--------------------------------------------------
+
+Set `result` to `value` bitwise inclusive-OR (|)-ed with `num`.
+
+result = value.xor(num), MPZ.xor(result, value, num)
+----------------------------------------------------
+
+Set `result` to `value` bitwise exclusive-OR (^)-ed with `num`.
+
+result = value.not(), MPZ.not(result, value)
+--------------------------------------------
+
+Set `result` to `value` bitwise NOT (~)ed.
+
+result = value.shiftLeft(num), MPZ.shiftLeft(result, value, num)
+----------------------------------------------------------------
+
+Set `result` to `value` multiplied by `2^num`. Equivalent of the `<<` operator.
+
+result = value.shiftRight(num), MPZ.shiftRight(result, value, num)
+------------------------------------------------------------------
+
+Set `result` to `value` integrally divided by `2^num`. Equivalent of the `>>` operator.
+
+result = value.abs(), MPZ.abs(result, value)
+--------------------------------------------
+
+Set `result` to the absolute value of `value`.
+
+result = value.neg(), MPZ.neg(result, value)
+--------------------------------------------
+
+Set `result` to the negative of `value`.
+
+result = value.sqrt(), MPZ.sqrt(result, value)
+----------------------------------------------
+
+Set `result` to square root of `value`. This truncates.
+
+result = value.root(nth), MPZ.root(result, value, nth)
+------------------------------------------------------
+
+Set `result` to `nth` root of `value`. This truncates.
+
+result = value.pow(exp), MPZ.pow(result, value, exp)
+----------------------------------------------------
+
+Set `result` to `value` raised to the `exp` power.
+
+result = value.powm(exp, mod), MPZ.powm(result, value, exp, mod)
+----------------------------------------------------------------
+
+Set `result` to `value` raised to the `exp` power modulo `mod`.
+
+value.cmp(num)
+--------------
+
+Compare the instance value to `num`. Return a positive integer if `> num`,
+a negative integer if `< num`, and 0 if `=== num`.
+
+value.gt(num)
 -------------
 
-Return a new `Buffer` with the data from the `bigint`.
+Return a boolean: whether the instance value is greater than num (`> num`).
 
-The default options are:
-    {
-        order : 'forward', // low-to-high indexed word ordering
-        endian : 'big',
-        size : 1, // number of bytes in each word
-    }
+value.ge(num)
+-------------
 
-Note that endian doesn't matter when size = 1.
+Return a boolean: whether the instance value is greater than or equal to num (`>= num`).
 
-.add(n)
--------
+value.eq(num)
+-------------
 
-Return a new `bigint` containing the instance value plus `n`.
+Return a boolean: whether the instance value is equal to num (`== num`).
 
-.sub(n)
--------
+value.lt(num)
+-------------
 
-Return a new `bigint` containing the instance value minus `n`.
+Return a boolean: whether the instance value is less than num (`< num`).
 
-.mul(n)
--------
+value.le(num)
+-------------
 
-Return a new `bigint` containing the instance value multiplied by `n`.
+Return a boolean: whether the instance value is less than or equal to num (`<= num`).
 
-.div(n)
--------
+result = value.rand(upperBound), MPZ.rand(result, lowerBound, upperBound), MPZ.rand(result, upperBound)
+-------------------------------------------------------------------------------------------------------
 
-Return a new `bigint` containing the instance value integrally divided by `n`.
-
-.abs()
-------
-
-Return a new `bigint` with the absolute value of the instance.
-
-.neg()
-------
-
-Return a new `bigint` with the negative of the instance value.
-
-.cmp(n)
--------
-
-Compare the instance value to `n`. Return a positive integer if `> n`, a
-negative integer if `< n`, and 0 if `== n`.
-
-.gt(n)
-------
-
-Return a boolean: whether the instance value is greater than n (`> n`).
-
-.ge(n)
-------
-
-Return a boolean: whether the instance value is greater than or equal to n
-(`>= n`).
-
-.eq(n)
-------
-
-Return a boolean: whether the instance value is equal to n (`== n`).
-
-.lt(n)
-------
-
-Return a boolean: whether the instance value is less than n (`< n`).
-
-.le(n)
-------
-
-Return a boolean: whether the instance value is less than or equal to n
-(`<= n`).
-
-.and(n)
--------
-
-Return a new `bigint` with the instance value bitwise AND (&)-ed with `n`.
-
-.or(n)
-------
-
-Return a new `bigint` with the instance value bitwise inclusive-OR (|)-ed with
-`n`.
-
-.xor(n)
--------
-
-Return a new `bigint` with the instance value bitwise exclusive-OR (^)-ed with
-`n`.
-
-.mod(n)
--------
-
-Return a new `bigint` with the instance value modulo `n`.
-
-`m`.
-.pow(n)
--------
-
-Return a new `bigint` with the instance value raised to the `n`th power.
-
-.powm(n, m)
------------
-
-Return a new `bigint` with the instance value raised to the `n`th power modulo
-`m`.
-
-.invertm(m)
------------
-
-Compute the multiplicative inverse modulo `m`.
-
-.rand()
--------
-.rand(upperBound)
------------------
-
-If `upperBound` is supplied, return a random `bigint` between the instance value
+If `upperBound` is supplied, set `result`to a random `MPZ` between the `value` (`lowerBound`)
 and `upperBound - 1`, inclusive.
 
-Otherwise, return a random `bigint` between 0 and the instance value - 1,
-inclusive.
+Otherwise, set `result`to a random `MPZ` between 0 and the `value` - 1, inclusive.
 
-.probPrime()
-------------
+value.probPrime()
+-----------------
 
-Return whether the bigint is:
+Return whether the `value` is:
 
 * certainly prime (true)
 * probably prime ('maybe')
 * certainly composite (false)
 
-using [mpz_probab_prime](http://gmplib.org/manual/Number-Theoretic-Functions.html).
+using [mpz_probab_prime](https://gmplib.org/manual/Number-Theoretic-Functions.html).
 
-.nextPrime()
-------------
+result = value.nextPrime(), MPZ.nextPrime(result, value)
+--------------------------------------------------------
 
-Return the next prime greater than `this` using
-[mpz_nextprime](http://gmplib.org/manual/Number-Theoretic-Functions.html).
+Set `result` to the next prime greater than `value` using
+[mpz_nextprime](https://gmplib.org/manual/Number-Theoretic-Functions.html).
 
-.sqrt()
--------
+result = value.invert(mod), MPZ.invert(result, value, mod)
+----------------------------------------------------------
 
-Return a new `bigint` that is the square root.  This truncates.
+Compute the multiplicative inverse modulo `mod`.
 
-.root(n)
---------
+result = value.gcd(num), MPZ.gcd(result, value, num)
+----------------------------------------------------
 
-Return a new `bigint` that is the `nth` root.  This truncates.
+Set `result` to the greatest common divisor of the `value` with `num`.
 
-.shiftLeft(n)
--------------
+value.bitLength()
+-----------------
 
-Return a new `bigint` that is the `2^n` multiple. Equivalent of the `<<`
-operator.
+Return the number of bits used to represent the current `MPZ` as a javascript Number.
 
-.shiftRight(n)
---------------
-
-Return a new `bigint` of the value integer divided by
-`2^n`. Equivalent of the `>>` operator.
-
-.gcd(n)
--------
-
-Return the greatest common divisor of the current bigint with `n` as a new
-bigint.
-
-.bitLength()
-------------
-
-Return the number of bits used to represent the current bigint as a javascript
-Number.
-
-install
+License
 =======
 
-You'll need the libgmp source to compile this package. Under Debian-based systems,
-
-    sudo aptitude install libgmp3-dev
-
-On a Mac with [Homebrew](https://github.com/mxcl/homebrew/),
-
-    brew install gmp
-
-And then install with [npm](http://npmjs.org):
-
-    npm install bigint
+MIT or LGPL-3 license.
