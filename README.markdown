@@ -1,5 +1,5 @@
-mpzjs
-=====
+mpzjs 0.5.0
+===========
 
 Arbitrary precision integral arithmetic for node.js.
 Based on [node-bigint](https://github.com/substack/node-bigint)
@@ -10,7 +10,7 @@ This library wraps around [libgmp](https://gmplib.org/)'s
 [integer functions](https://gmplib.org/manual/Integer-Functions.html#Integer-Functions)
 to perform infinite-precision arithmetic.
 
-mpzjs is several times faster than BigInt. 
+mpzjs is several times faster than BigInt.
 
 Install
 =======
@@ -70,6 +70,12 @@ Generate the perfect numbers:
     2305843008139952128
     2658455991569831744654692615953842176
     191561942608236107294793378084303638130997321548169216
+
+Limitations
+===========
+
+It's not thread safe now.
+It's not work in Windows now.
 
 API
 ===

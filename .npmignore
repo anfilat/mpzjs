@@ -1,1 +1,5 @@
+.github
+.idea
 build
+deps/gmp
+deps/gmp-build-6.2.0
