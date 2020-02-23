@@ -1,6 +1,6 @@
 {
   "name": "mpzjs",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "description": "Arbitrary-precision integer arithmetic using libgmp",
   "main": "./lib/index.js",
   "engines": {
