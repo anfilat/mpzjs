@@ -28,8 +28,8 @@ jobs:
     - run: npm test
       env:
         CI: true
-    - uses: actions/upload-artifact@v1
+    - name: 'Upload build'
+      uses: actions/upload-artifact@v1
       with:
-        name: build
-        path: ${{ github.workspace }}/build
-      name: 'Upload build'
+        name: build-${{ matrix.os }}
+        path: ${{ github.workspace }}/build/Release/mpzjs.node
