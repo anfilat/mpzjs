@@ -10,7 +10,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        node-version: [12.x, 13.x]
+        node-version: [13.x]
 
     steps:
     - name: Install texinfo (Linux)
@@ -28,3 +28,8 @@ jobs:
     - run: npm test
       env:
         CI: true
+    - uses: actions/upload-artifact@v1
+      with:
+        name: build
+        path: ${{ github.workspace }}/build
+      name: 'Upload build'
