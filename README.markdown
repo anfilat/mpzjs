@@ -1,4 +1,4 @@
-mpzjs 0.5.0
+mpzjs 0.5.1
 ===========
 
 Arbitrary precision integral arithmetic for node.js.
@@ -75,6 +75,7 @@ Limitations
 ===========
 
 It's not thread safe now.
+
 It's not work in Windows now.
 
 API
