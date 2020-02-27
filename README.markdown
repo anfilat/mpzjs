@@ -1,4 +1,4 @@
-mpzjs 0.5.2
+mpzjs 0.6.0
 ===========
 
 Arbitrary precision integral arithmetic for node.js.
@@ -14,6 +14,16 @@ mpzjs is several times faster than BigInt.
 
 Install
 =======
+
+You'll need the libgmp to work this package. Under Debian-based systems,
+
+    sudo apt-get install libgmp-dev
+
+On a Mac with [Homebrew](https://github.com/mxcl/homebrew/),
+
+    brew install gmp
+
+And then install with [npm](http://npmjs.org):
 
     npm install mpzjs
 

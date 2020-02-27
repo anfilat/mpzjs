@@ -1,7 +1,5 @@
 /build
 .idea
 prebuilds
-deps/gmp
-deps/gmp-build-6.2.0
 node_modules
 package-lock.json

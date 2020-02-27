@@ -1,6 +1,12 @@
 name: build & test CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
 
 jobs:
   build:
@@ -10,26 +16,21 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        node-version: [13.x]
+        node-version: [12.x]
 
     steps:
-    - name: Install texinfo (Linux)
-      run: sudo apt-get install texinfo
-      if: matrix.os == 'ubuntu-latest'
-    - name: Install texinfo (macOS)
-      run: brew install texinfo
-      if: matrix.os == 'macos-latest'
-    - uses: actions/checkout@v2
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
-      with:
-        node-version: ${{ matrix.node-version }}
-    - run: npm install
-    - run: npm test
-      env:
-        CI: true
-    - name: 'Upload build'
-      uses: actions/upload-artifact@v1
-      with:
-        name: build-${{ matrix.os }}
-        path: ${{ github.workspace }}/build/Release/mpzjs.node
+      - name: Install gmplib (Linux)
+        run: sudo apt-get install libgmp-dev
+        if: matrix.os == 'ubuntu-latest'
+      - name: Install gmplib (macOS)
+        run: brew install gmp
+        if: matrix.os == 'macos-latest'
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: npm install
+      - run: npm test
+        env:
+          CI: true
