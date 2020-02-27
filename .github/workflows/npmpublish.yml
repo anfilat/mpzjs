@@ -1,0 +1,61 @@
+name: Node.js Package
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Install gmplib (Linux)
+        run: sudo apt-get install libgmp-dev
+        if: matrix.os == 'ubuntu-latest'
+      - name: Install gmplib (macOS)
+        run: brew install gmp
+        if: matrix.os == 'macos-latest'
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12
+      - run: npm i
+      - run: npm test
+      - name: 'Rename'
+        run: |
+          cd ${{ github.workspace }}/build/Release/
+          cp mpzjs.node node.napi.node
+          cd ${{ github.workspace }}
+      - name: 'Upload build'
+        uses: actions/upload-artifact@v1
+        with:
+          name: build-${{ matrix.os }}
+          path: ${{ github.workspace }}/build/Release/node.napi.node
+
+  publish-npm:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12
+          registry-url: https://registry.npmjs.org/
+      - name: 'Download linux prebuild'
+        uses: actions/download-artifact@v1
+        with:
+          name: build-ubuntu-latest
+          path: prebuilds/linux-x64
+      - name: 'Download macos prebuild'
+        uses: actions/download-artifact@v1
+        with:
+          name: build-macos-latest
+          path: prebuilds/darwin-x64
+      - run: npm i
+      - run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.npm_token}}
