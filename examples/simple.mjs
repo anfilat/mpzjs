@@ -1,4 +1,4 @@
-const MPZ = require('mpzjs');
+import MPZ from 'mpzjs';
 
 const n = MPZ('782910138827292261791972728324982');
 MPZ.sub(n, n, '182373273283402171237474774728373');
