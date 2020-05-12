@@ -2,9 +2,30 @@
 
 using namespace Napi;
 
+class AddonData {
+public:
+  AddonData(Napi::Function func) {
+    MPZConstructor = Napi::Persistent(func);
+    MPZConstructor.SuppressDestruct();
+  }
+
+  gmp_randstate_t* GetRandstate() {
+    if (randstate == NULL) {
+      randstate = (gmp_randstate_t *) malloc(sizeof(gmp_randstate_t));
+      gmp_randinit_default(*randstate);
+      unsigned long seed = rand() + (time(NULL) * 1000) + clock();
+      gmp_randseed_ui(*randstate, seed);
+    }
+    return randstate;
+  }
+
+  Napi::FunctionReference MPZConstructor;
+  gmp_randstate_t *randstate = NULL;
+};
+
 #define NEW_MPZ(RESULT, RES)  \
-  auto result = constructor.New({});  \
-  auto *res = ObjectWrap<MPZ>::Unwrap(result);
+  auto RESULT = info.Env().GetInstanceData<AddonData>()->MPZConstructor.New({});  \
+  auto *RES = ObjectWrap<MPZ>::Unwrap(RESULT);
 
 #define GET_INT_ARG(I, VAR)  \
   auto VAR = info[I].As<Number>().Int64Value();
@@ -20,10 +41,6 @@ using namespace Napi;
 
 #define IS_STRING_ARG(I)  \
   info[I].IsString()
-
-static gmp_randstate_t *randstate = NULL;
-
-FunctionReference MPZ::constructor;
 
 Object MPZ::Init(Napi::Env env, Object exports) {
   HandleScope scope(env);
@@ -81,8 +98,7 @@ Object MPZ::Init(Napi::Env env, Object exports) {
     InstanceMethod("bitLength", &MPZ::BitLength)
   });
 
-  constructor = Persistent(func);
-  constructor.SuppressDestruct();
+  env.SetInstanceData(new AddonData(func));
 
   exports.Set("MPZInternal", func);
   return exports;
@@ -526,29 +542,16 @@ Value MPZ::Compare(const CallbackInfo& info) {
   }
 }
 
-void initRand() {
-    randstate = (gmp_randstate_t *) malloc(sizeof(gmp_randstate_t));
-    gmp_randinit_default(*randstate);
-    unsigned long seed = rand() + (time(NULL) * 1000) + clock();
-    gmp_randseed_ui(*randstate, seed);
-}
-
 Value MPZ::Rand(const CallbackInfo& info) {
   NEW_MPZ(result, res);
-  if (randstate == NULL) {
-    initRand();
-  }
-  mpz_urandomm(*res->value, *randstate, *this->value);
+  mpz_urandomm(*res->value, *info.Env().GetInstanceData<AddonData>()->GetRandstate(), *this->value);
 
   return result;
 }
 
 void MPZ::AssignRand(const CallbackInfo& info) {
   GET_MPZ_ARG(0, num);
-  if (randstate == NULL) {
-    initRand();
-  }
-  mpz_urandomm(*this->value, *randstate, *num->value);
+  mpz_urandomm(*this->value, *info.Env().GetInstanceData<AddonData>()->GetRandstate(), *num->value);
 }
 
 Value MPZ::ProbPrime(const CallbackInfo& info) {

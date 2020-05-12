@@ -63,8 +63,6 @@ class MPZ : public Napi::ObjectWrap<MPZ> {
     void AssignGcd(const Napi::CallbackInfo& info);
     Napi::Value BitLength(const Napi::CallbackInfo& info);
 
-    static Napi::FunctionReference constructor;
-
     mpz_t *value;
 };
 
