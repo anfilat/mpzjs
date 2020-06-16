@@ -6,7 +6,12 @@ class AddonData {
 public:
   AddonData(Napi::Function func) {
     MPZConstructor = Napi::Persistent(func);
-    MPZConstructor.SuppressDestruct();
+  }
+
+  ~AddonData() {
+    if (randstate != NULL) {
+      free(randstate);
+    }
   }
 
   gmp_randstate_t* GetRandstate() {

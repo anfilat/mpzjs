@@ -1,4 +1,4 @@
-mpzjs 0.7.0
+mpzjs 0.7.1
 ===========
 
 Arbitrary precision integral arithmetic for node.js.
