@@ -1,4 +1,5 @@
 #include "mpz.h"
+#include <cmath>
 
 using namespace Napi;
 
@@ -119,7 +120,11 @@ MPZ::MPZ(const CallbackInfo& info) : ObjectWrap<MPZ>(info) {
     mpz_init(*this->value);
   } else if (IS_NUMBER_ARG(0)) {
     GET_DOUBLE_ARG(0, num);
-    mpz_init_set_d(*this->value, num);
+    mpz_init(*this->value);
+    if (!std::isfinite(num)) {
+      NAPI_THROW_VOID(RangeError::New(env, "value must be a finite number"));
+    }
+    mpz_set_d(*this->value, num);
   } else {
     GET_INT_ARG(1, base);
     mpz_init_set_str(*value, info[0].As<String>().Utf8Value().c_str(), base);
@@ -153,6 +158,9 @@ Value MPZ::ToNumber(const CallbackInfo& info) {
 void MPZ::Set(const CallbackInfo& info) {
   if (IS_NUMBER_ARG(0)) {
     GET_DOUBLE_ARG(0, num);
+    if (!std::isfinite(num)) {
+      NAPI_THROW_VOID(RangeError::New(info.Env(), "value must be a finite number"));
+    }
     mpz_set_d(*this->value, num);
   } else if (IS_STRING_ARG(0)) {
     GET_INT_ARG(1, base);
@@ -475,6 +483,12 @@ void MPZ::AssignSqrt(const CallbackInfo& info) {
 Value MPZ::Root(const CallbackInfo& info) {
   NEW_MPZ(result, res);
   GET_INT_ARG(0, num);
+  if (num < 1) {
+    NAPI_THROW(RangeError::New(info.Env(), "Root degree must be a positive integer"), info.Env().Null());
+  }
+  if (num % 2 == 0 && mpz_sgn(*this->value) < 0) {
+    NAPI_THROW(RangeError::New(info.Env(), "Cannot take an even root of a negative number"), info.Env().Null());
+  }
   mpz_root(*res->value, *this->value, num);
 
   return result;
@@ -483,7 +497,12 @@ Value MPZ::Root(const CallbackInfo& info) {
 void MPZ::AssignRoot(const CallbackInfo& info) {
   GET_MPZ_ARG(0, num1);
   GET_INT_ARG(1, num2);
-
+  if (num2 < 1) {
+    NAPI_THROW_VOID(RangeError::New(info.Env(), "Root degree must be a positive integer"));
+  }
+  if (num2 % 2 == 0 && mpz_sgn(*num1->value) < 0) {
+    NAPI_THROW_VOID(RangeError::New(info.Env(), "Cannot take an even root of a negative number"));
+  }
   mpz_root(*this->value, *num1->value, num2);
 }
 
